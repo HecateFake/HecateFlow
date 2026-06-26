@@ -1,0 +1,11 @@
+# Editor / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local manifest produced when HecateFlow is used inside a workspace
+.hecateflow/

@@ -1,0 +1,47 @@
+# 实施计划:{{TITLE}}
+
+> 临时计划文件(plan→build 工作流)。进 build 第一步写入;会话恢复先读本文件确认进度;**全部完成并提交后删除**,不长期保留(区别于 PROJECT.md)。
+
+## 目标 target
+
+{{TARGET_ID}}（协作模型:{{COLLAB_MODEL}}）
+
+## 已确认的用户决策
+
+1. {{DECISION_1}}
+
+## 需求重述
+
+{{REQUIREMENT}}
+
+## 核心设计决策
+
+- {{DESIGN_DECISION}}
+
+## 实施步骤(进度勾选）
+
+- [ ] 阶段 1:{{STAGE_1}}
+- [ ] 阶段 2:{{STAGE_2}}
+- [ ] 阶段 3:{{STAGE_3}}
+
+每个阶段完成后:跑 hf-auto-workflow 审查 → 同步 PROJECT.md → 勾选本框。
+
+## 切点核对(来自模块设计卡）
+
+- [ ] 源文件登记(hf-build-sync)
+- [ ] 宏/构建变体
+- [ ] ISR 路由
+- [ ] 外设门控
+- [ ] volatile
+- [ ] 文档同步
+
+## 验收标准
+
+- {{ACCEPTANCE}}
+
+## 完成动作
+
+- [ ] 全部阶段勾选完毕
+- [ ] PROJECT.md 已同步
+- [ ] Git 提交(格式见 manifest `git.commitFormat`)
+- [ ] **删除本计划文件**

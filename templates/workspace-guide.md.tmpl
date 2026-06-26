@@ -1,0 +1,50 @@
+# {{WORKSPACE_NAME}} — 开发纲领 / Workspace Guide
+
+> 跨 target 协作纲领。各 target 内部细节见对应 `{{DOC_PATH}}/PROJECT.md`。
+> 本文件由 HecateFlow `hf-init-workspace` 生成,可手工增补。
+
+## 1. 行为规则
+
+- 回复语言:{{LANGUAGE}}。
+- 生成代码后按 hf-auto-workflow 自动审查。代码只在必要处加简洁注释。
+- 源文件编码:{{ENCODING}}。
+
+## 2. 架构总览
+
+| target | 位置 | 职责 | 状态 |
+|--------|------|------|------|
+| {{TARGET_ID}} | {{TARGET_LOC}} | {{TARGET_ROLE}} | {{TARGET_STATUS}} |
+
+## 3. 编辑前的 target 识别流程
+
+编辑任何源文件前必须先确认目标 target:
+1. 用户明确指定 → 直接用。
+2. 文件路径匹配 manifest `targets[].buildTarget` / 目录 → 用该 target。
+3. 关键词命中 target 职责 → 用匹配 target。
+4. 以上无法判断 → **必须询问用户**(绝不默认猜)。
+
+编辑高危同名文件(`{{HAZARD_FILES}}`)前必须公告:
+```
+目标:<target>/<file>(<语义说明>）
+```
+
+## 4. 跨 target 通信
+
+| 通道 | 端点 | 用途 |
+|------|------|------|
+| {{CHANNEL}} | {{ENDPOINTS}} | {{CHANNEL_PURPOSE}} |
+
+## 5. 构建系统
+
+- 类型:{{BUILD_SYSTEM}}(autoDiscover = {{AUTO_DISCOVER}})
+- 新增源文件登记法:见 hf-build-sync / manifest `buildSystem.registration`。
+
+## 6. Git 工作流
+
+- 提交格式:`{{COMMIT_FORMAT}}`。
+- 远端:{{REMOTES}};默认分支 {{DEFAULT_BRANCH}}。
+- 只显式 add 本次编辑文件,禁止 `git add .`。
+
+## 7. 文档同步责任
+
+PROJECT.md 必须随代码同步(见 hf-doc-discipline)。下列变更须同提交更新对应 target 的 PROJECT.md:新增/删除/重命名模块文件、变更高危文件语义、新增/删除构建变体、修改边界约定(ISR 时序、关键参数、硬件接口)。

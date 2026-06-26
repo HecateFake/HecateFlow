@@ -1,0 +1,51 @@
+# 模块设计卡:{{MODULE_NAME}}
+
+> 由 hf-design-module 在只读规划阶段产出。落地实施见 hf-implement。
+
+## 目标与范围
+
+- 目标 target:{{TARGET_ID}}
+- 解决什么问题:{{PROBLEM}}
+- 不做什么(范围边界):{{OUT_OF_SCOPE}}
+
+## 复用调研(先复用,再抽象,最后才新写)
+
+| 候选 | 来源 | 能否直接用 | 结论 |
+|------|------|-----------|------|
+| {{LIB}} | {{SOURCE}} | {{REUSABLE}} | {{DECISION}} |
+
+复用优先级:① 本仓已有库/抽象 → ② 现成外部库 → ③ 新建可复用库(对象式 Init/Update/Reset)。
+
+## 接口设计(对象式)
+
+```c
+typedef struct { /* ... */ } {{MODULE}}Struct;
+void {{module}}Init({{MODULE}}Struct *p, /* params */);
+void {{module}}Update({{MODULE}}Struct *p, /* inputs */);
+void {{module}}Reset({{MODULE}}Struct *p);
+```
+
+## 切点清单(漏一处即翻车）
+
+新增/接入本模块需同步以下全部位点:
+
+- [ ] **源文件登记**:{{BUILD_REGISTRATION}}(构建系统 + LSP `-I`,见 hf-build-sync)
+- [ ] **宏/构建变体**:{{MACRO_TOUCHPOINT}}(若引入新模式)
+- [ ] **ISR 路由 / 周期**:{{ISR_TOUCHPOINT}}(若挂中断)
+- [ ] **外设所有权门控**:{{PERIPHERAL_GATE}}(若占用独占外设,用白名单 #if)
+- [ ] **共享数据 volatile**:{{VOLATILE_TOUCHPOINT}}(若跨 ISR/核共享)
+- [ ] **文档同步**:PROJECT.md 模块清单 + 边界(见 hf-doc-discipline)
+
+## 先仿真后上板判定
+
+- 是否含可在 PC 验证的算法/几何/协议:{{SIM_NEEDED}}
+- 若是 → 先用 {{SIM_TOOL}} 验证再上板。
+
+## 安全要点(hf-embedded-safety 预检)
+
+- {{SAFETY_NOTE}}
+
+## 实施阶段(交接 hf-implement)
+
+1. {{STAGE_1}}
+2. {{STAGE_2}}

@@ -1,0 +1,61 @@
+# {{TARGET_ID}} — {{TARGET_ROLE}}
+
+> 本 target 的单一事实真相源。无上下文的 agent 应能只读本文件在该 target 内独立工作。
+> 必须随代码同步更新(见 hf-doc-discipline)。
+
+## 状态卡
+
+| 项 | 值 |
+|----|----|
+| 分支 | {{BRANCH}} |
+| 构建变体 / 模式 | {{BUILD_MODE}} |
+| 独占外设所有权 | {{PERIPHERAL_OWNERSHIP}} |
+| 活跃任务 | {{ACTIVE_TASK}} |
+| 已知坑 | {{KNOWN_PITFALLS}} |
+
+## 1. 身份与定位
+
+- MCU / 架构:{{MCU}} / {{ARCH}}
+- 工具链:{{TOOLCHAIN}}
+- 职责:{{ROLE_DETAIL}}
+- 在系统中的分工:{{SYSTEM_ROLE}}
+
+## 2. 模块清单(源码目录）
+
+目录结构简述:{{DIR_LAYOUT}}
+
+| 文件 | 用途 |
+|------|------|
+| {{FILE}} | {{PURPOSE}} |
+
+## 3. 高危文件 / 引脚总览
+
+跨 target 同名不同义文件(编辑前必须公告 target):
+
+| 文件 | 本 target 含义 |
+|------|---------------|
+| {{HAZARD_FILE}} | {{HAZARD_MEANING}} |
+
+引脚 / 硬件接口:{{PINOUT_REF}}
+
+## 4. 边界与约束
+
+- **{{TOPIC}}**:{{CONSTRAINT}}
+
+## 5. ISR / 时序
+
+| ISR / 周期 | 职责 |
+|-----------|------|
+| {{ISR}} | {{ISR_DUTY}} |
+
+## 6. 关键参数
+
+| 参数 | 值 | 说明 |
+|------|----|----|
+| {{PARAM}} | {{VALUE}} | {{PARAM_NOTE}} |
+
+## 验证清单
+
+- [ ] {{VERIFY_ITEM_1}}
+- [ ] {{VERIFY_ITEM_2}}
+- [ ] {{VERIFY_ITEM_3}}

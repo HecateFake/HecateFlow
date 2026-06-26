@@ -1,0 +1,101 @@
+# HecateFlow
+
+> 可复用、与具体 MCU 无关的**嵌入式开发生命周期 skill 系统**,从一个真实的多核裸机 C 工程的成熟开发流程中蒸馏而来。同时支持 **Claude Code** 与 **Codex**。
+>
+> A reusable, MCU-agnostic **embedded-development lifecycle skill system**, distilled from the hard-won workflow of a real multi-core bare-metal C project. Works in both **Claude Code** and **Codex**.
+
+---
+
+## 这是什么 / What it is
+
+HecateFlow 把嵌入式开发从"工作区初始化"到"提交前审查"的完整生命周期,组织成一组**可交互调用、使用时自定义**的 skill。它不绑定任何芯片或工具链——你的 MCU 家族、工具链、构建系统、各核职责都记在一份持久化工程清单 `.hecateflow/project.json` 里,skill 读它做默认值,只问你没填的。
+
+HecateFlow organizes the full embedded lifecycle — from workspace bootstrap to pre-commit review — into a set of **interactive, customize-at-use-time** skills. It binds to no specific chip or toolchain: your MCU family, toolchain, build system, and per-core roles live in a persistent manifest (`.hecateflow/project.json`); skills read it for defaults and only ask for what's missing.
+
+## 为什么 / Why
+
+裸机/实时嵌入式的真正成本不在算法,而在反复踩的坑:漏 `volatile` 的幽灵 bug、ISR 里的阻塞、执行器无钳位、新文件忘登记进 IAR/Keil 工程导致链接错误、文档与代码漂移、构建变体改一处漏五处。HecateFlow 把这些经验固化成**可逐项判定的清单**和**带交互的工作流**,让它们可复用到任意嵌入式工程。
+
+## Skill 一览 / The skills
+
+| Skill | 作用 |
+|-------|------|
+| `hecateflow` | **总入口**:读/初始化工程清单,展示生命周期地图并路由,注入全局红线。 |
+| `hf-init-workspace` | 交互式初始化工作区,生成 `.hecateflow/project.json` + 开发纲领。 |
+| `hf-init-project` | 为一个核/芯片/固件建 PROJECT.md 并登记到清单。 |
+| `hf-design-module` | 增量模块设计(只读):复用调研 + 切点清单 + 仿真判定。 |
+| `hf-implement` | 增量实施:写码 + 登记 + 每编辑审查 + 文档同步 + 计划文件 + Git 收尾。 |
+| `hf-review` | 提交前深度审查(多维 + 子代理对抗)。 |
+| `hf-auto-workflow` | **always-on** 每次编辑后的 6 步审查门。 |
+| `hf-embedded-safety` | ISR/volatile/数值/外设所有权安全审查(10 项)。 |
+| `hf-build-sync` | 新文件登记进构建系统(IAR/Keil/CMake/Make)+ LSP。 |
+| `hf-doc-discipline` | 文档即真相源:PROJECT.md 同步 + 版本登记 + 防漂移。 |
+| `hf-refactor` | 行为保持重构:机械等价变换 + 子代理对抗审查代替编译。 |
+
+生命周期典型路径 / typical lifecycle:
+`hf-init-workspace` → `hf-init-project` → `hf-design-module` → `hf-implement` → `hf-review`,`hf-refactor` 与知识层(safety/build-sync/doc-discipline)按需唤起。
+
+## 安装 / Install
+
+把 `skills/` 安装到 `~/.claude/skills` 与 `~/.codex/skills`(模板随 `hecateflow` 入口捆绑)。幂等,可重复运行升级。
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/HecateFake/HecateFlow.git
+cd HecateFlow
+./install.ps1
+```
+
+**macOS / Linux / Git Bash:**
+```sh
+git clone https://github.com/HecateFake/HecateFlow.git
+cd HecateFlow
+sh install.sh
+```
+
+装好后,在 Claude Code 或 Codex 新会话里说 **`hecateflow`** 或"初始化这个嵌入式工作区"即可开始。
+
+## 快速开始 / Quick start
+
+1. `hecateflow` —— 入口检测到没有 `.hecateflow/project.json`,引导你跑 `hf-init-workspace`。
+2. `hf-init-workspace` —— 探测 `.ewp`/`CMakeLists.txt` 等,交互确认 MCU/工具链/构建系统,写工程清单。
+3. `hf-init-project` —— 为每个核/芯片建 PROJECT.md。
+4. `hf-design-module` —— 设计新模块,产出切点清单 + 计划文件。
+5. `hf-implement` —— 按计划落地,每次编辑自动审查、登记、同步文档。
+
+## 工程清单 / The manifest
+
+`.hecateflow/project.json` 是 HecateFlow 的交互记忆,记录 `workspace`(MCU/工具链/编码)、`buildSystem`(类型 + 文件登记方式)、`targets[]`(各核职责/独占外设/高危同名文件)、`docs`、`git`、`activeChecks` 等。schema 见 [`skills/hecateflow/references/manifest-schema.md`](skills/hecateflow/references/manifest-schema.md)。
+
+## 可选:Claude Code 自动审查 hook / Optional auto-review hook
+
+让 `hf-auto-workflow` 在每次编辑后自动触发(opt-in,加到 `~/.claude/settings.json`):
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": "echo '提醒: 运行 hf-auto-workflow 对刚编辑的源文件做 6 步审查'"
+      }
+    ]
+  }
+}
+```
+
+Codex 无 hook 机制,`hf-auto-workflow` 靠 skill 正文约定"编辑后立即自审"。
+
+## 跨平台说明 / Cross-platform
+
+- skill 正文用 Claude Code 工具名书写;每个 SKILL.md 末尾"平台差异"段已内联 Codex 等价(`Task→spawn_agent` 等)。完整映射见 [`skills/hecateflow/references/`](skills/hecateflow/references/)。
+- 两端都读 frontmatter `name`+`description`,忽略不认识的字段。
+- skill 名加 `hf-` 前缀(入口除外)以避免全局命名冲突。
+
+## 出处 / Provenance
+
+蒸馏自第 21 届全国大学生智能汽车竞赛飞跃雷区组的三核 CYT4BB7 工程(飞控 + 视觉 + 麦轮车)。方法论长文与案例见 [`docs/methodology.md`](docs/methodology.md)。CYT4BB7/IAR 仅作案例,HecateFlow 本身不依赖它们。
+
+## License
+
+MIT © 2026 Hecate ([HecateFake](https://github.com/HecateFake))

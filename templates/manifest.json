@@ -1,0 +1,56 @@
+{
+  "$schema": "hecateflow/manifest-v1",
+  "version": 1,
+  "workspace": {
+    "name": "REPLACE_ME",
+    "mcuFamily": "REPLACE_ME",
+    "arch": "REPLACE_ME",
+    "toolchain": "REPLACE_ME",
+    "language": "c",
+    "encoding": "utf-8-no-bom",
+    "indent": "4-spaces"
+  },
+  "buildSystem": {
+    "type": "REPLACE_ME",
+    "autoDiscover": false,
+    "registration": {
+      "projectFile": "",
+      "sourceNode": "",
+      "includePathField": "",
+      "lspConfig": ""
+    }
+  },
+  "targets": [],
+  "docs": {
+    "rootGuide": "",
+    "sharedLibVersions": "",
+    "glossary": "",
+    "pinout": ""
+  },
+  "planFile": {
+    "convention": "INTEGRATION_PLAN.md",
+    "location": "",
+    "deleteOnComplete": true
+  },
+  "simulation": {
+    "enabled": false,
+    "tools": []
+  },
+  "activeChecks": {
+    "targetConfirm": true,
+    "volatile": true,
+    "isrSafety": true,
+    "numericSafety": true,
+    "style": true,
+    "docSync": true
+  },
+  "git": {
+    "commitFormat": "<scope>: <desc>",
+    "remotes": ["origin"],
+    "defaultBranch": "main",
+    "neverAddAll": true
+  },
+  "interaction": {
+    "askUserQuestionSchema": "questions[]{question,header,options}"
+  }
+}

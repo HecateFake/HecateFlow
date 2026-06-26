@@ -1,0 +1,25 @@
+{
+  "name": "hecateflow",
+  "description": "Reusable, MCU-agnostic embedded-development skill system: interactive workspace/target init, incremental module design & implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate. Distilled from a real multi-core bare-metal C project.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Hecate",
+    "url": "https://github.com/HecateFake"
+  },
+  "homepage": "https://github.com/HecateFake/HecateFlow",
+  "repository": "https://github.com/HecateFake/HecateFlow",
+  "license": "MIT",
+  "keywords": [
+    "embedded",
+    "firmware",
+    "mcu",
+    "cortex-m",
+    "bare-metal",
+    "skills",
+    "isr-safety",
+    "refactor",
+    "code-review",
+    "workflow"
+  ],
+  "skills": "./skills/"
+}

@@ -1,0 +1,6 @@
+# 统一文本行尾为 LF(开源跨平台一致;install.sh 在 POSIX 上需要 LF)
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.svg text eol=lf
