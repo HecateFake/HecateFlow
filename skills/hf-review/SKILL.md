@@ -76,7 +76,7 @@ metadata:
 
 ## 平台差异
 
-- 派子代理:Claude `Task`(可并行多维度);Codex `spawn_agent`(需 `multi_agent=true`)→`wait_agent`→`close_agent`。
+- 派子代理:Claude `Task`(可并行多维度);Codex 在多代理工具可用且用户明确授权时用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent`,否则主会话顺序审查并声明未做子代理对抗复核。
 
 ## 参考
 

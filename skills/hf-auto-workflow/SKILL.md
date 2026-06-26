@@ -101,7 +101,7 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 ## 平台差异
 
 - 自动触发:Claude PostToolUse hook(harness 强制);Codex 靠 prompt 自律(无 hook)。
-- 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载/`spawn_agent`。
+- 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载相关 skill,仅在多代理工具可用且用户明确授权时使用 `multi_agent_v1.spawn_agent`,否则主会话顺序执行。
 - 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`lessonsCapture` 为 true 时,Claude 端可在 PostToolUse hook 里提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考

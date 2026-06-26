@@ -189,7 +189,7 @@ agent **触及以下任一**时,**不得静默改动、不得自行假定极性*
 ## 平台差异
 
 - 主动提醒:Claude Code 在回复正文显式列"请确认 X";Codex 同。`activeChecks.polarityMagnitude`/`ioOwnership` 为 true 时,`hf-auto-workflow` 会在每次相关编辑后触发本提醒(Claude 端可挂 PostToolUse hook,Codex 端编辑后自律调用)。
-- 把藏 Kp 的极性搬回 §极性段属"改行为"重构,不能编译验证时派子代理对抗审查:Claude Code 用 `Task`(`subagent_type:"code-reviewer"`),Codex 用 `spawn_agent`→`wait_agent`→`close_agent`(详见 `hf-refactor`)。
+- 把藏 Kp 的极性搬回 §极性段属"改行为"重构,不能编译验证时派子代理对抗审查:Claude Code 用 `Task`(`subagent_type:"code-reviewer"`),Codex 在多代理工具可用且用户明确授权时用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent`,否则主会话按 `hf-refactor` 清单逐项自审并声明限制。
 - 命名风格(camelCase / snake_case)随 manifest 与既有代码,匹配周围代码胜过模板默认(见 `../references/embedded-c-style.md`)。
 
 ## 参考

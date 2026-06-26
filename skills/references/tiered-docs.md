@@ -39,7 +39,7 @@
 | 改引脚/硬件映射 | `pinMap.h` → `docs/PINOUT.md` 冲突矩阵(先改头再更新矩阵) |
 | 改极性/方向系数 | `configHeader` §极性段注释 + 提醒用户核实接线(见 hf-hw-mapping) |
 | 改/同步共享库 | `docs/LIBRARY_VERSIONS.md` |
-| 新增规则 | rule 文件 + `instructions[]` + rules/README 触发表 + 镜像入口(见 auto-injection.md) |
+| 新增规则 | rule 文件 + `instructions[]` + rules/README 触发表 + 镜像入口(见 `../hecateflow/references/auto-injection.md`) |
 
 **规则/skill/术语与代码同源**:代码改动使某 rule/skill/术语描述失效 → 同次提交校准,与 PROJECT.md 同等约束。
 
@@ -71,7 +71,7 @@
 
 ## 参考
 
-- 经验记忆:`hf-lessons`、`templates/lesson.md.tmpl`、`templates/lessons-index.md.tmpl`
+- 经验记忆:`hf-lessons`、`../hecateflow/templates/lesson.md.tmpl`、`../hecateflow/templates/lessons-index.md.tmpl`
 - 注入:`../hecateflow/references/auto-injection.md`
 - git 同次提交:`git-discipline.md`
 - 文档纪律主 skill:`hf-doc-discipline`

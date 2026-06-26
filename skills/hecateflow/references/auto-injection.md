@@ -34,8 +34,8 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 
 ## 搭建步骤(hf-init-workspace 执行)
 
-1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、git 流程、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
-2. **建规则目录**:`.claude/rules/`,放分级文档(见 `../references/tiered-docs.md`)与场景化检查规则;建 `README.md` 触发表。
+1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `../templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、git 流程、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
+2. **建规则目录**:`.claude/rules/`,放分级文档(见 `../../references/tiered-docs.md`)与场景化检查规则;建 `README.md` 触发表。
 3. **建 instructions 列表**:若用 OpenCode,生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
 4. **可选 hook**:若 harness 支持(Claude Code `settings.json`),可加 `PostToolUse` 在编辑 `.c/.h` 后跑格式化/审查;登记到 `autoInjection.hooks`。无 hook 时退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(本仓即此模式,见 `hf-auto-workflow`)。
 5. **校验注入闭环**:新会话能否在不手动 `@` 的情况下命中规则。验证法:让 agent 描述"编辑某 `.c` 前要做什么",应自动复述 auto-workflow 步骤。
@@ -50,6 +50,6 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 ## 参考
 
 - manifest 字段:`manifest-schema.md` 的 `autoInjection`
-- 分级文档:`../references/tiered-docs.md`
-- git 纪律:`../references/git-discipline.md`
+- 分级文档:`../../references/tiered-docs.md`
+- git 纪律:`../../references/git-discipline.md`
 - 维护责任:`hf-doc-discipline`、`hf-init-workspace`

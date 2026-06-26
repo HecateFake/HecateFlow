@@ -94,7 +94,7 @@ record → recall → avoid → promote
 2. **recall(检索)**:**相关编辑前先按 target / trigger 关键词扫 `INDEX.md`** → 命中则读对应 lesson。这是回路最易被省略、却最关键的一环:不查 = 白记。
 3. **avoid(规避)**:按命中 lesson 的"如何避免"动作执行,绕开已知坑。
 4. **promote(升级)**:判断该经验是否该升到更强约束:
-   - **多 target 相关 / 反复出现** → 升为 `.claude/rules/<name>.md` 的"禁止/反面教训"段(并按 `auto-injection.md` 登记到 instructions 列表 + rules/README 触发表 + 镜像入口)。升级后在 INDEX"已升级"表记一行,原 lesson 标 `status: superseded`(或保留并注明已入规则)。
+   - **多 target 相关 / 反复出现** → 升为 `.claude/rules/<name>.md` 的"禁止/反面教训"段(并按 `../hecateflow/references/auto-injection.md` 登记到 instructions 列表 + rules/README 触发表 + 镜像入口)。升级后在 INDEX"已升级"表记一行,原 lesson 标 `status: superseded`(或保留并注明已入规则)。
    - **可机械检查**(如"ICF 改后跑 `LC_ALL=C grep` 验 ASCII""新源文件须进构建工程 + LSP") → 并入 `hf-auto-workflow` 的审查步骤,自动拦截,不再仅靠人工检索。
    - **仅单点、低频** → 留作 lesson 即可,不强行升级(避免规则膨胀)。
 
@@ -131,7 +131,7 @@ record → recall → avoid → promote
 ## 验证(agent 能做的 + 必须交给用户的)
 
 - agent 能做:判定某经验是否够格记为 lesson、起草 lesson 文件、维护 INDEX、检索命中、判定去重/失效、提出升级建议(升 rule / 并入 auto-workflow)。
-- **必须交用户**:① 把 lesson **正式升级为 `.claude/rules` 规则**前确认(规则影响所有 agent,且需同步注入列表/触发表/镜像入口,见 `auto-injection.md`);② 删除一条 lesson 前,若不确定坑是否真已根治,先标 `superseded` 并问用户,**不擅自删可能仍有效的经验**(对齐 git-discipline"不回退他人改动"精神);③ 导出到 harness 原生 memory 由用户决定,不自动写。
+- **必须交用户**:① 把 lesson **正式升级为 `.claude/rules` 规则**前确认(规则影响所有 agent,且需同步注入列表/触发表/镜像入口,见 `../hecateflow/references/auto-injection.md`);② 删除一条 lesson 前,若不确定坑是否真已根治,先标 `superseded` 并问用户,**不擅自删可能仍有效的经验**(对齐 git-discipline"不回退他人改动"精神);③ 导出到 harness 原生 memory 由用户决定,不自动写。
 
 ## 反面教训(具体案例)
 

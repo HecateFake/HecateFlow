@@ -160,8 +160,8 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
 | `lessons` | 3 & 7 自进化/不再犯 | hf-lessons | 全部(编辑前检索) |
 | `autoInjection` | 9 自动注入 | hf-init-workspace | hf-doc-discipline |
 
-> 详细机制见 `references/auto-injection.md`(注入)、`../references/git-discipline.md`(git)、`../references/tiered-docs.md`(分级文档)。
+> 详细机制见 `auto-injection.md`(注入)、`../../references/git-discipline.md`(git)、`../../references/tiered-docs.md`(分级文档)。
 
 ## 最小可用清单
 
-只有 `version` + `workspace`(含 `name`)+ 至少一个 `targets[]` 项即可工作。其余字段缺失时 skill 用内置默认值并在需要时 AskUserQuestion 补全。`scenario` / `lessons` / `autoInjection` 为空时,对应 skill 退化为"每次询问"而非"读默认",不阻塞。
+工作区初始化阶段只需要 `version` + `workspace`(含 `name`) 即可写出最小 manifest,`targets[]` 可为空;进入实现/审查/重构等业务阶段前,必须已有可判定的 target,否则先用 `hf-init-project` 追加至少一个 `targets[]` 项。其余字段缺失时 skill 用内置默认值并在需要时 AskUserQuestion 补全。`scenario` / `lessons` / `autoInjection` 为空时,对应 skill 退化为"每次询问"而非"读默认",不阻塞。
