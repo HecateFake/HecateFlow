@@ -8,7 +8,20 @@
     "toolchain": "REPLACE_ME",
     "language": "c",
     "encoding": "utf-8-no-bom",
-    "indent": "4-spaces"
+    "indent": "4-spaces",
+    "scenario": {
+      "domain": "",
+      "constraints": [],
+      "safetyRules": [],
+      "forbidden": []
+    },
+    "lsp": {
+      "clangd": false,
+      "configStyle": "none"
+    }
+  },
+  "paths": {
+    "preferRelative": true
   },
   "buildSystem": {
     "type": "REPLACE_ME",
@@ -27,6 +40,15 @@
     "glossary": "",
     "pinout": ""
   },
+  "lessons": {
+    "dir": ".hecateflow/lessons/",
+    "index": ".hecateflow/lessons/INDEX.md"
+  },
+  "autoInjection": {
+    "instructionsFiles": [],
+    "mirrorPairs": [],
+    "hooks": []
+  },
   "planFile": {
     "convention": "INTEGRATION_PLAN.md",
     "location": "",
@@ -42,7 +64,11 @@
     "isrSafety": true,
     "numericSafety": true,
     "style": true,
-    "docSync": true
+    "docSync": true,
+    "polarityMagnitude": true,
+    "relativePaths": true,
+    "ioOwnership": true,
+    "lessonsCapture": true
   },
   "git": {
     "commitFormat": "<scope>: <desc>",

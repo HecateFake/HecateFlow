@@ -1,7 +1,7 @@
 {
   "name": "hecateflow",
-  "description": "Reusable, MCU-agnostic embedded-development skill system: interactive workspace/target init, incremental module design & implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate. Distilled from a real multi-core bare-metal C project.",
-  "version": "1.0.0",
+  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills): interactive workspace/target init, incremental module design & implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate. v1.1 adds hardware-mapping headers with a single-source polarity/magnitude truth, a cross-platform lessons memory (record/recall/avoid/promote), tiered context-saving docs, auto-injection of rules/skills, clangd config management, multi-target IO-ownership planning, and relative-path discipline. Distilled from a real multi-core bare-metal C project.",
+  "version": "1.1.0",
   "author": {
     "name": "Hecate",
     "url": "https://github.com/HecateFake"
@@ -19,7 +19,15 @@
     "isr-safety",
     "refactor",
     "code-review",
-    "workflow"
+    "workflow",
+    "hardware-map",
+    "polarity",
+    "lessons",
+    "scenario",
+    "clangd",
+    "io-ownership",
+    "relative-path",
+    "auto-injection"
   ],
   "skills": "./skills/"
 }

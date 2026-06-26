@@ -1,10 +1,10 @@
 ---
 name: hf-doc-discipline
 description: >
-  文档即真相源:每个 target 一份 PROJECT.md 随代码同步(状态卡/模块清单/边界/参数/ISR 表/验证清单),
-  跨 target 共享库版本登记,防文档漂移。代码改了文档没跟 = 漂移,禁止累积。MCU 无关。
-  触发:文档同步 / PROJECT.md / 更新文档 / 版本登记 / 文档漂移 / doc sync / keep docs in sync /
-  module docs / library version registry。
+  文档即真相源:三层分级文档省上下文(纲领→各 target PROJECT.md→场景规则,按需下钻),代码改动→必同步文档
+  矩阵(自动进化同源),跨 target 共享库版本登记 + 多工程关键词映射/同名异义登记,与 lessons 经验记忆衔接。
+  代码改了文档没跟 = 漂移,禁止累积。MCU 无关。触发:文档同步 / PROJECT.md / 更新文档 / 版本登记 /
+  分级文档 / 多工程 / 文档漂移 / doc sync / tiered docs / library version registry。
 license: MIT
 argument-hint: "[target]"
 metadata:
@@ -28,7 +28,21 @@ metadata:
 
 ## 第一性原则
 
-**文档是代码的投影,必须与代码同一次提交更新。** PROJECT.md 是该 target 的单一真相源,nginx 式分散但交叉引用。共享库在多 target 各有副本独立演进时,版本差异必须登记,否则复用时选错版本。
+**文档是代码的投影,必须与代码同一次提交更新。** 三条推论:
+
+- **分级省上下文**:上下文稀缺,不能把全部工程知识塞一个大文件每会话全量加载。三层分级 + 按需下钻——冷启动只读纲领,定位 target 后才下钻其 PROJECT.md,命中场景才读对应规则(完整模型见 `references/tiered-docs.md`)。
+- **同源同提交**:PROJECT.md 是该 target 的单一真相源,分散但交叉引用;代码改了文档没跟 = 漂移,会骗下个 agent 按失效语义改代码。规则/skill/术语同受此约束。
+- **多工程可路由**:共享库在多 target 各有副本独立演进时版本差异必须登记;同名异义高危文件、关键词→target 映射让无上下文 agent 能正确路由,不误改邻核。
+
+## 分级文档体系(省上下文,点 4 — 详见 `references/tiered-docs.md`)
+
+| 层 | 文件 | 何时读 |
+|----|------|--------|
+| ① 纲领 | `CLAUDE.md`/`AGENTS.md`、`docs/README.md`、`docs/*`(PINOUT/GLOSSARY/LIBRARY_VERSIONS) | **每次冷启动**(harness 自动注入纲领入口) |
+| ② 核内真相源 | 各 target `PROJECT.md` | **定位到某 target 后下钻** |
+| ③ 场景规则 | `.claude/rules/*.md` + 临时 `INTEGRATION_PLAN.md` | **命中具体场景时** |
+
+**冷启动下钻路径**:读纲领 → 关键词/路径定位 target → 读该 target `PROJECT.md` → 命中场景读对应 rule。`docs/README.md` 做"我想做 X 看哪份"导航表,避免盲目全量读。维护文档时,本 skill **既维护②核内真相源,也维护①纲领的导航/映射表与③规则的同源校准**;细节不在此复述,以 `references/tiered-docs.md` 为基线。
 
 ## PROJECT.md 六段(模板 `templates/PROJECT.md.tmpl`)
 
@@ -47,15 +61,48 @@ metadata:
 4. 共享库改动 → 更新版本登记表(哪个 target 持最完善版/差异/待对齐项)。
 5. 跑下方清单;缺同步 → HIGH,提示补文档后再提交。
 
+## 自动进化同源矩阵(点 3 — 代码改动 → 必同步文档)
+
+代码改动后按类型在**同次提交**内同步对应文档(缺失同步 = 漂移,禁止累积)。简表如下,**完整矩阵见 `references/tiered-docs.md`**:
+
+| 代码改动 | 必同步 |
+|----------|--------|
+| 新增/删除/重命名模块文件 | 该 target `PROJECT.md` 模块清单 + 构建工程文件 + LSP 配置(`hf-build-sync`) |
+| 高危文件语义变更 | `PROJECT.md` + 纲领 `CLAUDE.md`/`AGENTS.md` + 对应 rule |
+| 新增/切换编译期模式 | `PROJECT.md` 模式段 + rule 切点清单 |
+| 改跨 target 通信协议/帧格式 | 纲领通信表 + `docs/PINOUT.md` + 两端 target PROJECT.md |
+| 改引脚/硬件映射 | `pinMap.h` → `docs/PINOUT.md` 冲突矩阵(先改头再更新矩阵,见 `hf-hw-mapping`) |
+| 改极性/方向系数 | `configHeader` §极性段注释 + 提醒用户核实接线(`hf-hw-mapping`) |
+| 改/同步共享库 | `docs/LIBRARY_VERSIONS.md`(见下版本登记) |
+| 新增规则 | rule 文件 + `instructions[]` + rules/README 触发表 + 镜像入口(`references/auto-injection.md`) |
+
+**规则/skill/术语与代码同源**:代码改动使某 rule/skill/术语描述失效 → 同次提交校准,与 PROJECT.md 同等约束。
+
+## 多工程管理(点 2 — 纲领层必备)
+
+单工作区多个独立可构建 target 时,**纲领层**(本 skill 维护)须提供三件路由资产:
+
+- **关键词 → target 映射表**:用户措辞(如"麦轮/底盘/编码器"→某核)直接路由,免逐个翻。新增 target/职责须更新此表。
+- **同名异义高危文件登记**:`motor.c`/`IMU.c`/`PID.c` 等跨 target 语义不同,各 target 的 PROJECT.md 高危段写"本 target 含义",编辑前公告 `目标:<target>/<file>(<语义>)`。manifest `targets[].hazardFiles`。
+- **共享库版本登记 + `_legacy/` 隔离**:见下"判定口径";归档代码进 `_legacy/`,纲领标注"仅供参考、不复用",防误用旧版本。
+
+## 与 lessons 经验记忆的衔接(点 7,引 `hf-lessons`)
+
+doc-discipline 管"**当下同步**"(代码改→文档跟),`hf-lessons` 管"**跨会话记忆**"(踩坑→下次别犯),职责不重叠(完整边界表见 `hf-lessons`)。衔接点:**lesson 反复出现或多 target 相关 → 升级为 `.claude/rules` 段**,此后该规则的"代码改动→规则校准"重新归本 skill 的同步矩阵管。`references/tiered-docs.md` 的"不再犯回路"是两者共同索引,`hf-lessons` 是主实现,本 skill 只引用、不复述记录/检索细节。
+
 ## PASS/FAIL 清单
 
+- [ ] 冷启动按需读路径成立:纲领有导航表 + 关键词→target 映射 + 同名高危登记,未把全部知识塞一个巨文件。
 - [ ] 新增/删除/重命名的模块文件,已在 PROJECT.md 模块清单同步增删。
 - [ ] 变更了高危文件语义,PROJECT.md 高危文件段"本 target 含义"已更新。
 - [ ] 新增/删除构建变体,状态卡 + 边界段已更新。
 - [ ] 改了边界约定(ISR 周期/关键参数/硬件接口),对应表已改值。
 - [ ] 改了跨 target 共享库,版本登记表已更新(差异/推荐版/待对齐)。
+- [ ] 多工程路由资产已随改动更新:关键词→target 映射、同名异义高危登记、`_legacy/` 隔离标注。
 - [ ] 规则/skill 自身描述若被代码改动证伪,已同次校准(规则与代码同源)。
-- [ ] 临时计划文件(INTEGRATION_PLAN.md)在任务完成后已删除,经验沉淀进 PROJECT.md。
+- [ ] 新增规则已按 `references/auto-injection.md` 四处同步(rule 文件 + instructions + 触发表 + 镜像入口)。
+- [ ] 反复出现/多 target 相关的 lesson 已提示升级为规则(衔接 `hf-lessons`)。
+- [ ] 临时计划文件(INTEGRATION_PLAN.md)在任务完成后已删除,经验沉淀进 PROJECT.md / lesson。
 
 ## 版本登记的判定口径
 
@@ -80,4 +127,7 @@ metadata:
 
 ## 参考
 
-- `templates/PROJECT.md.tmpl`、`hf-init-project`(建初版 PROJECT.md)、`hf-implement`(改代码时同步)、`hf-auto-workflow`(第 6 步文档同步检查)。
+- `references/tiered-docs.md`(三层分级 + 完整同步矩阵 + 多工程 + 不再犯回路索引,本 skill 的基线)。
+- `references/auto-injection.md`(新增规则的四处注入)、`references/git-discipline.md`(同次提交纪律)。
+- `hf-lessons`(经验记忆衔接 / 升级阶梯)、`hf-hw-mapping`(引脚/极性/PINOUT 同步)、`hf-build-sync`(源文件→构建图+LSP 同步)。
+- `templates/PROJECT.md.tmpl`、`hf-init-project`(建初版 PROJECT.md + 纲领路由资产)、`hf-implement`(改代码时同步)、`hf-auto-workflow`(第 5 步文档同步检查)。

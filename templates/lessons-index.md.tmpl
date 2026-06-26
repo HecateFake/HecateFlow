@@ -1,0 +1,24 @@
+# Lessons 索引 — {{WORKSPACE_NAME}}
+
+> 工程经验记忆索引(点 7 不再犯)。每条 lesson 一个文件,放 `.hecateflow/lessons/<slug>.md`。
+> **相关编辑前先扫本表,命中 trigger 则先读对应 lesson 规避**。由 hf-lessons 维护。
+> 本目录跨平台本地存储(Claude Code / Codex 等都能读),不依赖任一 harness 的私有 memory。
+
+## 用法
+
+1. 踩坑 / 被纠正 / 确认好做法 → 用 `templates/lesson.md.tmpl` 新建 `<slug>.md`,在此加一行。
+2. 编辑前先按 target / trigger 关键词检索本表 → 读命中条目 → 规避。
+3. 同类已有 lesson → **更新该文件**而非新建(去重);失效的标 `status: superseded` 或删除。
+4. 反复出现 / 多 target 相关 → 升级为 `.claude/rules` 禁止段;可机械检查 → 并入 auto-workflow。
+
+## 索引
+
+| slug | type | target | 一句话(trigger 命中场景) |
+|------|------|--------|--------------------------|
+| [{{LESSON_SLUG}}]({{LESSON_SLUG}}.md) | {{TYPE}} | {{TARGET}} | {{ONE_LINE}} |
+
+## 已升级为规则的(不再仅靠检索)
+
+| 原 lesson | 升级去向 |
+|-----------|----------|
+| {{SLUG}} | {{.claude/rules/xxx.md 段 / hf-auto-workflow 第 N 步}} |

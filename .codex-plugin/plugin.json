@@ -1,7 +1,7 @@
 {
   "name": "hecateflow",
-  "version": "1.0.0",
-  "description": "Reusable, MCU-agnostic embedded-development skill system distilled from a real multi-core bare-metal C project.",
+  "version": "1.1.0",
+  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills) distilled from a real multi-core bare-metal C project. v1.1 adds hardware-mapping headers with single-source polarity/magnitude truth, cross-platform lessons memory, tiered context-saving docs, auto-injection, clangd config management, multi-target IO-ownership planning, and relative-path discipline.",
   "author": {
     "name": "Hecate",
     "url": "https://github.com/HecateFake"
@@ -19,13 +19,21 @@
     "isr-safety",
     "refactor",
     "code-review",
-    "workflow"
+    "workflow",
+    "hardware-map",
+    "polarity",
+    "lessons",
+    "scenario",
+    "clangd",
+    "io-ownership",
+    "relative-path",
+    "auto-injection"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HecateFlow",
     "shortDescription": "Embedded-dev lifecycle skills: init, design, implement, refactor, review, per-edit safety gate.",
-    "longDescription": "HecateFlow orchestrates the full embedded-development lifecycle with interactive, MCU-agnostic skills: workspace and per-target initialization, incremental module design, incremental implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate (volatile/ISR/numeric/peripheral). A persistent project manifest (.hecateflow/project.json) remembers your MCU family, toolchain, build system, and targets so skills only ask for what they don't already know.",
+    "longDescription": "HecateFlow orchestrates the full embedded-development lifecycle with 13 interactive, MCU-agnostic skills: workspace and per-target initialization, incremental module design, incremental implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate (volatile/ISR/numeric/peripheral). v1.1 deepens the engineering discipline: hardware-mapping headers with a single-source polarity/magnitude truth (three direction-coefficient groups, open-loop identification, never hide polarity in a PID Kp sign), a cross-platform lessons memory under .hecateflow/lessons/ (record/recall/avoid/promote so the same mistake is not repeated), tiered context-saving docs, auto-injection so rules and skills are auto-discovered across CLIs, clangd config management, multi-target IO-ownership planning, and relative-path discipline. A persistent project manifest (.hecateflow/project.json) remembers your MCU family, toolchain, build system, targets, scenario constraints, and owned peripherals so skills only ask for what they don't already know.",
     "developerName": "Hecate",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],

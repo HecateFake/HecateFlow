@@ -74,10 +74,17 @@ LSP:CMake 可生成 `compile_commands.json`(`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`
 
 ---
 
-## LSP(clangd)单独说明
+## LSP(clangd)经验(对应 S3 六条,点 10)
 
-无论构建系统如何,clangd 报"找不到头文件"的虚假红线时:
-- 优先生成/更新 `compile_commands.json`(CMake/Make/bear)。
-- 退而手维护 `.clangd` 的 `CompileFlags.Add: [-Inewdir, ...]`。
-- 第三方/SDK 路径的噪声诊断用 `.clangd` 的 `Diagnostics.Suppress` 屏蔽,不改 SDK 头。
-- PC 侧仿真子项目(x86)用独立 `.clangd`,不复用 MCU 的 `--target=arm-none-eabi`。
+**前置**:`hf-init-workspace` **主动询问用户是否用 clangd 补全/索引**。用则把配置方式记入 manifest `workspace.lsp{clangd:true,configStyle}`;不用则跳过本节(无虚假红线困扰,也无需维护 `-I`)。
+
+无论构建系统如何,clangd 报"找不到头文件"的虚假红线或漏报时,六条经验:
+
+1. **`.ewp`/构建工程文件 与 `.clangd` 是一对,同步改两处**:任何源文件路径/include 目录改动,既要进构建工程文件(否则链接 undefined),又要进 LSP 配置(否则索引虚报)。漏一个 → "一个过一个报错"。这是头号同步项。
+2. **子目录化后按源文件深度分块 `-I`**:`project/code/` 拆子目录后,`.clangd` 里写死的相对回溯级数(`../../`)会因不同深度文件而失效。要么用 `If/PathMatch` 按目录分块给各自的 `-I`,要么改用 `compile_commands.json`(下条)免手算级数。
+3. **优先 `compile_commands.json`,免手维护 `-I`**:CMake(`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`)/ Make(`bear -- make`)/ PlatformIO 都能生成;clangd 直接吃,新增文件/目录无需手改 `.clangd`。手维护 `-I` 是退路。
+4. **SDK/第三方噪声诊断用 `Diagnostics.Suppress` 屏蔽,不改 SDK 头**:厂商库(常 GBK、非标扩展)的诊断刷屏时,在 `.clangd` 用 `Diagnostics.Suppress: ["*"]`(配 `PathMatch` 限定到 SDK 目录)消声,而非修改 SDK 源。
+5. **跨 target 分叉的 LSP 配置禁跨核同步**:不同 target 的编译期常量分叉(如相机分辨率 94×60 vs 188×120、不同 `-D` 宏)会让 clangd 对入口保护代码的求值不同;把一个 target 的 `.clangd`/`-D` 抄给另一个 → 入口保护误判致功能段被索引器当死代码。每 target 独立配置。
+6. **PC 仿真子项目用独立 x86 `.clangd`**:`tools/` 下的 PC 端仿真(对齐板端算法)用本地 `.clangd`,`--target` 留空 + `-xc -std=gnu11`,**不复用** MCU 的 `--target=arm-none-eabi`,否则标准头解析全错。
+
+> 路径纪律(点 12):`.clangd` 的 `-I`、`compile_commands.json` 里的 include 一律**相对路径**,不写绝对机器路径,保证跨机/跨人可索引。

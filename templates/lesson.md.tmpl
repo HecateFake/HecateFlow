@@ -1,0 +1,31 @@
+---
+name: {{LESSON_SLUG}}
+type: pitfall | correction | good-practice
+trigger: "{{触发场景:何种编辑/操作前应先想起本条,中英关键词}}"
+target: {{TARGET_ID_OR_ALL}}
+severity: critical | high | medium
+status: active | superseded
+created: {{YYYY-MM-DD}}
+---
+
+# {{一句话标题}}
+
+## 症状(怎么暴露的)
+
+{{观察到的现象:编译报错 / 链接 undefined / 运行失控 / 屏幕乱码 / 行为不符预期……尽量具体到可被搜索命中}}
+
+## 根因(为什么会这样)
+
+{{第一性原因。不要停在表象;说清机制——如"GBK 误按 UTF-8 读产生合法 U+FFFD 扫描漏判""极性藏进 Kp 负号致误改正反馈"}}
+
+## 如何避免(下次怎么不再犯)
+
+- {{可执行的规避动作 1:编辑前先做什么 / 改前先确认什么}}
+- {{规避动作 2}}
+- 升级路径:{{是否应升为 .claude/rules 的禁止段 / 并入 auto-workflow 自动检查 / 仅留本 lesson}}
+
+## 关联
+
+- 相关 lesson:[[{{OTHER_LESSON_SLUG}}]]
+- 相关规则/skill:{{rule 或 skill 名}}
+- 源(若有):{{commit / 文件:行;源工程案例可保留绝对出处}}

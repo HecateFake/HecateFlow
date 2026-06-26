@@ -107,6 +107,60 @@ agent 不能编译,所以"零行为变化"靠**子代理对抗审查**:用 `git 
 
 → 落地:`hecateflow` 注入 AskUserQuestion schema 红线。
 
+### 15. 极性是单一真相源,绝不藏进 Kp 负号 / Polarity has one home — never a Kp sign
+
+源工程**最贵的一类事故**:把执行器/反馈的方向翻转藏进 PID 的 Kp 负号,Kp 身兼增益 + 极性二职。某次误改一个符号 → 负反馈变正反馈 → 60A 强磁电机闭环瞬间跑飞。根治:每路执行器命令、每路传感器反馈各有一个**方向系数宏**(`*_OUTPUT_DIR`/`ENCODER_*_DIR`/`CURRENT_SENSE_*_DIR`,±1,集中在 `configHeader` §极性段),吸收"代码符号↔现实方向"映射,使**正方向时占空比/转速/电流全为正**,上层 Kp 全用正号。各 DIR 的 ±1 是**本台硬件开环实测辨识**的结果,不是可移植常量(源工程 core2 BL/BR 重新接线后极性翻转,照抄旧值即失控);闭环轴向(如 yaw 环要 IMU `yawRate` 正向=车体 CCW 左转)开环辨识不覆盖,须手动转车确认。agent **不得自行假定极性,必须主动提醒用户标定/确认物理事实**。
+
+→ 落地:`hf-hw-mapping`(极性单一真相源 + 开环辨识 + 闭环轴向 + 主动确认义务);`hf-embedded-safety`/`hf-auto-workflow` 红线拦截 Kp 藏极性。
+
+### 16. 硬件契约抽出算法:引脚 / 参数 / 极性三层分离 / Extract the hardware contract
+
+源工程把"引脚是 HAL 事实、参数是整定事实、算法是逻辑"三层分离:引脚走零依赖纯 `#define` 的 `pinMap.h`、可调参数走分节 `configHeader`(§A 时序/§B-D 各环 PID/§E 几何限幅/§极性/§F 映射故障)、算法只依赖抽象接口。换芯片/换接线/换车体时只动底层一处,算法层不改。配合非扁平布局(`project/code/` 按功能分 `app/control/sensor/comm/config/util` 子目录),两类集中头放 `config/`。
+
+→ 落地:`hf-hw-mapping`(头组织法)+ `hf-init-project`(非扁平脚手架 + 生成 pinMap/config 头)+ 模板 `pinMap.h.tmpl`/`config-header.h.tmpl`。
+
+### 17. 量纲与数量级是隐形契约 / Magnitude is an invisible contract
+
+源工程不同控制环增益差几个数量级(速度环 Kp~23 在脉冲/2ms 域,电流环 Kp~0.002 在 ADC 原始量域,差 ~1e4),禁混用;菜单调参步长必须与默认值/范围/钳位同量级——曾有 4 处步长失配,按一下要么纹丝不动要么直接打满钳位。能用 `#if ... #error` 在编译期挡住的量纲/范围约束就挡(如摇杆映射分母防除零)。
+
+→ 落地:`hf-hw-mapping` 数量级理智检查 + `hf-auto-workflow` 扩展检查(`activeChecks.polarityMagnitude`)。
+
+### 18. 分级分布式文档省上下文 / Tiered docs to spend context wisely
+
+上下文是稀缺资源,把全部知识塞一个大文件每会话全量加载 = 烧光上下文还抓不住重点。源工程用三层分级 + 按需下钻:① 纲领(CLAUDE.md/AGENTS.md/docs)= 行为规则 + 场景 + target 识别 + 跨核拓扑 + 导航;② 各核 PROJECT.md = 核内单一真相源;③ `.claude/rules/*` + 临时计划 = 场景化检查。冷启动只读纲领,定位 target 后才下钻其 PROJECT.md,命中场景才读对应 rule。`docs/README.md` 做"我想做 X 看哪份"导航。
+
+→ 落地:`hf-doc-discipline`(分级体系 + 同步矩阵)+ `references/tiered-docs.md`。
+
+### 19. 固化场景:把"为什么"做成常驻约束 / Pin the scenario as a constant constraint
+
+源工程的赛规约束(禁飞机↔车模无线通信、车不许离地、飞机不许降落)是贯穿全程的硬约束,不是某次任务的细节。把它固化进 manifest `workspace.scenario`(domain/constraints/safetyRules/forbidden),让所有 skill 常驻读取——设计/实现/审查都对照它,违反 `forbidden`/`safetyRules` 即 CRITICAL。功能"对"但违规等于错。
+
+→ 落地:`hf-init-workspace` 采集场景;`hecateflow` 注入红线;`hf-review` 场景合规维度。
+
+### 20. 经验记忆:不再犯是回路不是记录 / Lessons: never-repeat is a loop
+
+无上下文 agent 每会话从零开始,最贵的代价是反复踩同一个坑(GBK 编码 U+FFFD 扫描漏判、ICF 注释中文崩链接器、极性藏 Kp)。源工程把硬经验固化为**本地、跨平台、可检索**的 lesson(`.hecateflow/lessons/<slug>.md`,frontmatter type/trigger + 症状/根因/如何避免),并定义升级阶梯:record → recall(编辑前检索)→ avoid(规避)→ promote(反复/多 target 升为规则,可机械检查的并入 auto-workflow)。光记不查 = 白记;存进 harness 私有 memory 当唯一副本 = 换工具即丢。
+
+→ 落地:**新 skill `hf-lessons`** + 本地 `.hecateflow/lessons/` + `hf-auto-workflow` 记录触发 + `hf-doc-discipline` 衔接。
+
+### 21. 自动注入:规则没被喂进上下文等于没写 / Auto-injection
+
+agent 不会读它没被注入的规则。源工程靠三类通道保证规则/skill 自动生效:① 入口文件常驻(CLAUDE.md/AGENTS.md 每会话进上下文);② instructions 列表(OpenCode `opencode.json`);③ skill description 关键词发现。`AGENTS.md` 是跨 CLI 最大公约数,纲领规则镜像写入 CLAUDE.md + AGENTS.md,新增规则四处同步(rule 文件 + instructions + 触发表 + 镜像入口)。
+
+→ 落地:`hf-init-workspace` 搭建自动注入 + `references/auto-injection.md` + `hf-doc-discipline` 维护。
+
+### 22. clangd 配置与构建图是一对 / clangd config pairs with the build graph
+
+源工程初始化先问"是否用 clangd 补全";用则 `.ewp`(IAR 编译)与 `.clangd`(索引)**视为一对**,任何源文件路径改动同步两处否则一个过一个报错;子目录化后相对路径回溯级数失效需按深度分块 `-I`;SDK 噪声用 `Diagnostics.Suppress` 屏蔽;跨核分叉配置(相机分辨率 94×60 vs 188×120)禁跨核同步;优先 `compile_commands.json` 免手维护;PC 仿真子项目用独立 x86 `.clangd`。构建/LSP 路径优先相对(`$PROJ_DIR$\..`、`-I./src`),绝对机器路径入库换机即坏。
+
+→ 落地:`hf-build-sync`(先问是否用 clangd + 六条经验 + 相对路径)+ `references/build-systems.md`。
+
+### 23. IO 外设多核归属与分核任务规划 / IO peripheral ownership across cores
+
+单实例 IO 外设(SPI 屏、共享总线、共享 ADC、调试 UART)在多核工程只能一个核/上下文占用,用**白名单 `#if`** 门控(非黑名单,防新增模式默认抢占)。设计涉 IO 外设的模块时,agent 须**主动提醒该外设的归属权并促用户做分核任务规划**(哪个核拥有、其它核如何让出),登记到 manifest `targets[].ownedPeripherals[]`(`io:true` 即归属敏感)并做冲突检查。
+
+→ 落地:`hf-hw-mapping`(设计期归属提醒)+ `hf-embedded-safety`(白名单门控机制)+ `hf-init-project`(登记 + 冲突检查)。
+
 ---
 
 ## 三、持久化交互记忆 / The persistent manifest
