@@ -172,7 +172,7 @@ agent 不会读它没被注入的规则。源工程靠三类通道保证规则/s
 ## 四、跨平台设计 / Cross-platform design
 
 - **单一源树**:`skills/<name>/SKILL.md`,两端共用。
-- **工具名映射**:正文用 Claude 工具名,每个 SKILL.md 末尾"平台差异"段内联 Codex 等价(因为 Codex 不支持外部 reference 的渐进披露)。
+- **工具名映射**:正文用 Claude 工具名,每个 SKILL.md 末尾"平台差异"段写 Codex 等价;共享 reference 可用相对路径读取。Codex 多代理仅在工具可用且用户明确授权时使用,否则主会话降级执行并声明限制。
 - **frontmatter 并集**:`name`+`description` 必填(Codex 靠 description 关键词发现 skill),其余字段两端忽略不认的。
 - **命名隔离**:`hf-` 前缀避免与他人 skill 全局冲突。
 

@@ -26,6 +26,28 @@ metadata:
 
 实现 / 写代码 / 进 build / 执行计划 / 修 bug 收尾 / implement / build feature / execute plan。
 
+## Quick Path(最小执行版)
+
+1. 读 manifest + 计划文件,确认 target;不明确就先问。
+2. 编辑前扫 `.hecateflow/lessons/INDEX.md`;命中则按 lesson 规避。
+3. 每新增 `.c/.h` 或目录,立即执行 `hf-build-sync` 的登记清单,不能只写"见 hf-build-sync"。
+4. 每次编辑后执行 `hf-auto-workflow`;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版。
+5. 若改了模块清单/边界/参数/协议,直接同步 PROJECT.md,不能只写"见 hf-doc-discipline"。
+6. 结束时输出下方 `HecateFlow Check`,再提交/交付。
+
+```text
+HecateFlow Check:
+- target:
+- files touched:
+- build sync:
+- auto-workflow:
+- doc sync:
+- polarity/io:
+- lessons:
+- git:
+- remaining risks:
+```
+
 ## 第一性原则
 
 **每次编辑都是一次完整的小循环:写 → 登记 → 审查 → 同步 →(踩坑则)记忆。** 嵌入式的麻烦在于一处改动牵连构建图、并发安全、文档;再加上无上下文 agent 会反复踩同一个坑。把这五件事绑成每次编辑的固定收尾,才不会攒下技术债、也不会重复犯错。计划文件是跨会话的进度锚;路径一律相对,保证产物跨机可移植。
@@ -51,9 +73,9 @@ metadata:
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
 2. **编辑前检索 lessons(recall)**:按 target / 关键词扫 `.hecateflow/lessons/INDEX.md`,命中则读对应 lesson 规避已知坑(见 `hf-lessons`;不查 = 白记)。
 3. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
-4. **新增文件** → 委派 `hf-build-sync`:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。
-5. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
-6. **改了模块清单/语义/参数/边界** → 委派 `hf-doc-discipline` 同步 PROJECT.md(同次提交,见同步矩阵)。
+4. **新增文件** → 执行 `hf-build-sync` 的登记清单:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。禁止只口头说"应登记"。
+5. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
+6. **改了模块清单/语义/参数/边界** → 执行 `hf-doc-discipline` 的同步动作,直接更新 PROJECT.md 或说明项目尚无 PROJECT.md(同次提交,见同步矩阵)。禁止只口头说"见文档纪律"。
 7. **修 bug / 被纠正 / 确认好做法 → 触发 `hf-lessons` 记录(record)**:机制级、会复发的经验写 `.hecateflow/lessons/<slug>.md` + 登记 INDEX,并判升级路径(仅 lesson / 升 rule / 并入 auto-workflow);`activeChecks.lessonsCapture:true` 时由 `hf-auto-workflow` 在踩坑后提示。一次性排查细节不记(避免流水账)。
 8. 勾选计划文件;阶段间不积压未审查代码。
 9. 全部完成:删计划文件 → Git 收尾(见下)。
@@ -82,6 +104,7 @@ metadata:
 
 - agent 能做:写码、登记、审查、文档同步、记 lesson、提交。
 - 必须交用户:**编译与上板由用户做**(agent 跑不了目标工具链);极性/增益的物理辨识由用户上板确认;给明确验证步骤。
+- 最终回复必须含 `HecateFlow Check`;若某项未执行,写明原因和风险。
 
 ## 反面教训
 

@@ -27,6 +27,27 @@ metadata:
 
 新增文件 / 加进工程 / undefined reference / 链接期未定义 / clangd 找不到头 / 构建同步 / register source。
 
+## Quick Path(登记判定树)
+
+1. `buildSystem.autoDiscover=true` → 不改工程文件;若 CMake `file(GLOB)` 提醒 reconfigure / `CONFIGURE_DEPENDS`。
+2. `autoDiscover=false` 且新增 `.c` → 必须登记到链接单元(`.ewp` / `.uvprojx` / `target_sources` / `SRCS`)。
+3. 新增 `.h` 或新目录 → 必须登记 include 搜索路径;IAR/Keil 工程树也列头文件以便审阅。
+4. `workspace.lsp.clangd=true` → 构建 include 与 LSP `-I` / `compile_commands.json` 成对同步。
+5. 所有工程/LSP 路径必须相对;发现绝对路径即 HIGH。
+
+输出:
+
+```text
+HecateFlow Build Sync:
+- build system:
+- autoDiscover:
+- source registration:
+- include paths:
+- clangd:
+- relative paths:
+- user rebuild step:
+```
+
 ## 第一性原则
 
 **"文件在磁盘上"不等于"文件在构建图里"。** 构建系统的真相源是工程文件/CMakeLists,不是目录。新增源文件是一个**双写动作**:写文件 + 登记到构建图(+ LSP 索引图)。两者必须同一次完成,不得推迟到"功能写完再说"。

@@ -1,0 +1,115 @@
+{
+  "$schema": "hecateflow/manifest-v1",
+  "version": 1,
+  "workspace": {
+    "name": "minimal-cmake",
+    "mcuFamily": "generic",
+    "arch": "generic-c",
+    "toolchain": "cmake",
+    "language": "c",
+    "encoding": "utf-8-no-bom",
+    "indent": "4-spaces",
+    "scenario": {
+      "domain": "minimal LED demo",
+      "constraints": ["host-buildable CMake sample"],
+      "safetyRules": ["no dynamic allocation in firmware code"],
+      "forbidden": ["absolute paths", "git add ."]
+    },
+    "lsp": {
+      "clangd": false,
+      "configStyle": "none"
+    }
+  },
+  "paths": {
+    "preferRelative": true
+  },
+  "buildSystem": {
+    "type": "cmake",
+    "autoDiscover": false,
+    "registration": {
+      "projectFile": "CMakeLists.txt",
+      "sourceNode": "target_sources()/add_executable() source list",
+      "includePathField": "target_include_directories()",
+      "lspConfig": "compile_commands.json"
+    }
+  },
+  "targets": [
+    {
+      "id": "demo-app",
+      "role": "minimal LED application target",
+      "subCores": [],
+      "language": "c",
+      "layout": {
+        "style": "feature-subdirs",
+        "subdirs": ["app", "config"]
+      },
+      "headers": {
+        "pinMap": "firmware/code/config/pinMap.h",
+        "configHeaders": ["firmware/code/config/configDemo.h"],
+        "polaritySource": "firmware/code/config/configDemo.h §polarity"
+      },
+      "ownedPeripherals": [
+        {
+          "device": "LED0-GPIO",
+          "owner": "demo-app",
+          "io": true,
+          "gate": "whitelist-#if",
+          "planNote": "demo-app owns the LED GPIO in this sample."
+        }
+      ],
+      "hazardFiles": ["main.c"],
+      "docPath": "firmware/PROJECT.md",
+      "buildTarget": "demo_firmware"
+    }
+  ],
+  "docs": {
+    "rootGuide": "AGENTS.md",
+    "sharedLibVersions": "",
+    "glossary": "",
+    "pinout": "docs/PINOUT.md"
+  },
+  "lessons": {
+    "dir": ".hecateflow/lessons/",
+    "index": ".hecateflow/lessons/INDEX.md"
+  },
+  "autoInjection": {
+    "instructionsFiles": [],
+    "mirrorPairs": [
+      {
+        "a": "CLAUDE.md",
+        "b": "AGENTS.md"
+      }
+    ],
+    "hooks": []
+  },
+  "planFile": {
+    "convention": "INTEGRATION_PLAN.md",
+    "location": "firmware/",
+    "deleteOnComplete": true
+  },
+  "simulation": {
+    "enabled": false,
+    "tools": []
+  },
+  "activeChecks": {
+    "targetConfirm": true,
+    "volatile": true,
+    "isrSafety": true,
+    "numericSafety": true,
+    "style": true,
+    "docSync": true,
+    "polarityMagnitude": true,
+    "relativePaths": true,
+    "ioOwnership": true,
+    "lessonsCapture": true
+  },
+  "git": {
+    "commitFormat": "<scope>: <desc>",
+    "remotes": ["origin"],
+    "defaultBranch": "main",
+    "neverAddAll": true
+  },
+  "interaction": {
+    "askUserQuestionSchema": "questions[]{question,header,options}"
+  }
+}

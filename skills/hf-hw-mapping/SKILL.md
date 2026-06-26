@@ -28,6 +28,25 @@ metadata:
 
 引脚映射 / pinMap / 硬件映射头 / 参数头 / configHeader / 非扁平布局 / 极性 / 方向系数 / polarity / 正反馈 / 数量级 / 增益 / 步长 / magnitude / IO 外设归属 / hardware map。
 
+## Quick Path(极性/量纲问答)
+
+触及执行器、传感器、闭环、增益或独占 IO 时,先按这个固定模板问/核:
+
+```text
+HecateFlow HW:
+- physical positive direction:
+- positive command causes:
+- positive sensor reading means:
+- polarity macro/source:
+- Kp sign:
+- feedback sign check:
+- gain unit/range/step:
+- IO owner/gate:
+- user confirmation needed:
+```
+
+未得到用户确认前,不得替用户写死极性、不得把负号藏进 Kp、不得在未知映射上整定闭环。
+
 ## 第一性原则
 
 **"硬件契约"(引脚、极性、量纲)要从算法里抽出来,集中到可辨识、可改、爆炸半径有限的单一位置。** 三条推论:

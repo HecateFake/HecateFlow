@@ -29,6 +29,26 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 - Codex:无 hook 机制 → 正文约定"每次 Write/Edit 后你必须立即自跑下列 6 步"。
 - 关键词:自动审查 / 编辑后检查 / post-edit review。
 
+## Quick Path(30 秒门)
+
+刚编辑完 `.c/.h` 时,至少完成:
+
+1. 确认 target 与文件语义,高危同名文件先公告。
+2. 扫本次改动里的 ISR/共享变量/执行器输出/除零和钳位。
+3. 扫新增路径是否绝对路径,新增文件是否需要构建登记。
+4. 若触及极性/增益/IO 归属,明确请用户确认物理事实,不自行假定。
+5. 输出一行摘要 + 下方简表。
+
+```text
+HecateFlow Auto:
+- target:
+- changed:
+- critical/high:
+- medium:
+- physical confirmations:
+- doc/build follow-up:
+```
+
 ## 第一性原则
 
 **问题在编辑当下最便宜。** 离开编辑上下文后,定位"哪次改动引入的"成本陡增。所以审查必须紧贴每次编辑,且对 CRITICAL/HIGH 自动修不打断节奏,只对需要决策的 MEDIUM 才打扰用户。
@@ -70,6 +90,7 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 - 有修:`✓ 审查完成,自动修复 N 个(CRITICAL×a, HIGH×b)`
 - 待决:`⚠ 审查完成,N 个 MEDIUM 待确认:...`
 - 待用户确认物理/归属事实:`⚠ 请确认:<极性/轴向/数量级/IO 归属 事实>`(扩展检查命中,不替用户假定)
+- 结构化摘要:同时补 `HecateFlow Auto` 简表,方便 `hf-implement` 汇总。
 
 ## PASS/FAIL 清单
 

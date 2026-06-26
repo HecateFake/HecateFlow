@@ -21,6 +21,21 @@ metadata:
 
 用户说"开始嵌入式开发流程""我要做这个 MCU 工程""hecateflow""不知道该用哪个 hf- skill"时,从这里进。已经明确阶段(如"重构这段")可直接调对应子 skill。
 
+## Quick Path(入口必须输出)
+
+每次从本入口路由时,先给出这 5 行,再进入子 skill:
+
+```text
+HecateFlow Route:
+- manifest: found|missing
+- target: <id|unknown>
+- scenario: known|missing
+- next skill: <hf-*>
+- reason: <one sentence>
+```
+
+若 `manifest: missing`,只引导 `hf-init-workspace`,不做业务设计/实现。若 `target: unknown` 且用户要编辑代码,先问目标 target,不猜。
+
 ## 第一步:工程清单(交互记忆)
 
 1. 找目标工作区根目录的 `.hecateflow/project.json`。

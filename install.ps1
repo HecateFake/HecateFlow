@@ -46,4 +46,4 @@ if ($dupes) { Write-Warning "duplicate skill names: $($dupes.Name -join ', ')" }
 
 $uniqueInstalled = $installed | Sort-Object -Unique
 Write-Output "[HecateFlow] skills: $($uniqueInstalled -join ', ')"
-Write-Output "[HecateFlow] done. 在 Claude Code / Codex 新会话里调用 'hecateflow' 开始。"
+Write-Output "[HecateFlow] done. Start a new Claude Code / Codex session and invoke 'hecateflow'."
