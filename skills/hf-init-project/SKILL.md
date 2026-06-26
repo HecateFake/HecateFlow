@@ -5,7 +5,8 @@ description: >
   生成硬件映射头 pinMap.h + 参数调节头 configXxx.h(含 §极性方向系数表),登记独占 IO 外设所有权
   并做跨 target 冲突检查 + 主动提示分核任务规划,标记同名高危文件,生成 PROJECT.md 并追加到 targets[]。
   每个 target 一次。触发:初始化工程 / 登记核 / 加 target / 新建 PROJECT.md / 非扁平布局 / pinMap /
-  外设归属 / 分核规划 / init project / register target / scaffold core。
+  外设归属 / 分核规划 / 新增固件 / 新增芯片 / 新增 core / 生成 config 头 / 生成引脚表 /
+  init project / register target / scaffold core / add firmware target / create PROJECT.md。
 license: MIT
 argument-hint: "[target-id]"
 metadata:

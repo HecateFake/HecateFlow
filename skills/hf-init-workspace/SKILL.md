@@ -6,7 +6,8 @@ description: >
   搭建规则/skill 自动注入(入口文件 + instructions 列表 + 可选 hook),生成持久化工程清单
   .hecateflow/project.json + 开发纲领 workspace-guide。MCU 无关,一次性,路径默认相对。
   触发:初始化工作区 / 新建 hecateflow / 工程脚手架 / 第一次用 hecateflow / 固化场景 / 自动注入 /
-  init workspace / bootstrap embedded workspace。
+  接入现有嵌入式工程 / 生成 project.json / 生成 AGENTS.md / 生成 CLAUDE.md / 询问 clangd /
+  init workspace / bootstrap embedded workspace / setup manifest / install project rules。
 license: MIT
 argument-hint: "[workspace-path]"
 metadata:

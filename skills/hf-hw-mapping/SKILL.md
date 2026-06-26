@@ -6,7 +6,8 @@ description: >
   agent 遇执行器/传感器/闭环极性或增益数量级时,主动提问让用户标定"代码符号↔现实方向"映射(落可调头宏)、
   并基于用户确定的映射核查闭环为负反馈,不自行假定极性。MCU 无关,裸机/RTOS 通用。
   触发:引脚映射 / pinMap / 硬件映射头 / 参数头 / configHeader / 非扁平布局 / 极性 / 方向系数 /
-  polarity / direction / 正反馈 / 数量级 / 增益 / 步长 / magnitude / gain / hardware map / IO 归属。
+  polarity / direction / 正反馈 / 数量级 / 增益 / 步长 / 参数调不动 / Kp 负号 / 编码器反了 /
+  电机方向反了 / IMU 轴向 / hardware map / IO 归属 / pin mapping / gain scale。
 license: MIT
 argument-hint: "[target]"
 metadata:

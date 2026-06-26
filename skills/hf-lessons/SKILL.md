@@ -5,7 +5,8 @@ description: >
   (frontmatter type/trigger + 症状/根因/如何避免)+ 维护 INDEX;相关编辑前先检索命中→规避;
   反复出现升级为规则,可机械检查的并入 auto-workflow。本地存储跨平台(Claude Code / Codex 都能读),
   区别于 harness 私有 memory。MCU 无关。触发:经验记录 / 踩坑 / 教训 / 不再犯 / lesson / 复盘 /
-  被纠正 / 好做法沉淀 / lessons learned / pitfall / postmortem / don't repeat / record mistake。
+  被纠正 / 好做法沉淀 / 记住这个坑 / 下次别犯 / 经验沉淀 / 事故复盘 /
+  lessons learned / pitfall / postmortem / don't repeat / record mistake / recall lesson。
 license: MIT
 argument-hint: "[record|recall|promote|prune] [slug]"
 metadata:

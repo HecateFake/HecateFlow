@@ -4,7 +4,8 @@ description: >
   文档即真相源:三层分级文档省上下文(纲领→各 target PROJECT.md→场景规则,按需下钻),代码改动→必同步文档
   矩阵(自动进化同源),跨 target 共享库版本登记 + 多工程关键词映射/同名异义登记,与 lessons 经验记忆衔接。
   代码改了文档没跟 = 漂移,禁止累积。MCU 无关。触发:文档同步 / PROJECT.md / 更新文档 / 版本登记 /
-  分级文档 / 多工程 / 文档漂移 / doc sync / tiered docs / library version registry。
+  分级文档 / 多工程 / 文档漂移 / 模块清单 / 高危文件语义 / 通信协议表 / PINOUT /
+  doc sync / tiered docs / library version registry / update docs / project documentation。
 license: MIT
 argument-hint: "[target]"
 metadata:

@@ -4,7 +4,8 @@ description: >
   行为保持(零功能变化)地重构嵌入式 C 模块——提取重复为助手、复用已有库(PID/滤波器/数学工具)、
   删被取代的死代码,并在 agent 无法编译时用子代理对抗审查证明每处改动与 git HEAD 位级等价。
   触发:重构 / 去重 / 合并相同逻辑 / 精简模块 / 复用已有库 / 抽象到公共库 / refactor / dedup /
-  behavior preserving / 不改变行为。
+  清理重复代码 / 删除死代码 / 提取 helper / 零行为变化 / 不改变功能 / behavior preserving /
+  no behavior change / cleanup duplicate code / extract helper。
 license: MIT
 argument-hint: "[scope]"
 metadata:

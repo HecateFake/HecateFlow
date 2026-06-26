@@ -4,7 +4,8 @@ description: >
   HecateFlow 总入口:可复用的嵌入式开发生命周期编排。读/初始化工程清单 .hecateflow/project.json,
   展示生命周期地图并路由到子 skill(工作区初始化/工程初始化/模块设计/实施/审查/重构),注入全局红线。
   MCU/工具链无关。触发:hecateflow / hf / 嵌入式开发流程 / 开始嵌入式工程 / embedded dev workflow /
-  start embedded project / 我要做嵌入式。
+  start embedded project / 我要做嵌入式 / 接入 HecateFlow / 用 HecateFlow 管这个工程 /
+  embedded project setup / embedded workflow router / which hf skill。
 license: MIT
 argument-hint: "[init|design|implement|review|refactor]"
 metadata:

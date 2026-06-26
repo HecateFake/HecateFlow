@@ -5,7 +5,8 @@ description: >
   CMake/Make)与 LSP(clangd -I / compile_commands;先确认用户是否用 clangd)。漏登 → 链接期
   undefined reference 或编辑器虚假红线。构建/LSP 路径优先相对($PROJ_DIR$\.. 类),禁绝对机器路径。
   MCU/工具链无关。触发:新增文件 / 加文件到工程 / undefined reference / 链接期未定义 /
-  clangd 报错找不到头 / inline 重复定义 / 构建同步 / 相对路径 / build sync / register source file。
+  clangd 报错找不到头 / inline 重复定义 / 构建同步 / 相对路径 / IAR 加文件 / Keil 加文件 /
+  CMake target_sources / 头文件找不到 / 没编进去 / build sync / register source file / add file to project。
 license: MIT
 argument-hint: "[buildTarget]"
 metadata:

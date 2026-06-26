@@ -6,7 +6,8 @@ description: >
   链接脚本注释 ASCII 安全。MCU 无关,适用裸机/RTOS 的 Cortex-M、RISC-V 等。
   触发:ISR 安全 / volatile / 中断安全 / 钳位 / clamp / 除零 / 溢出 / PID 积分限幅 / 失控保护 /
   外设占用 / 抢外设 / 惰性 set / lazy setter / set_dir / IPS114 / ICF / 链接脚本 ASCII /
-  Li005 / embedded safety / interrupt safety / shared data race。
+  Li005 / 电机失控 / 堵转 / PWM 限幅 / 中断里 printf / 屏幕乱码 / 总线抢占 /
+  embedded safety / interrupt safety / shared data race / actuator clamp / runaway protection。
 license: MIT
 argument-hint: "[target]"
 metadata:

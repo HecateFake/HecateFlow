@@ -5,7 +5,8 @@ description: >
   非扁平子目录放置,列出全部切点(源文件登记/构建变体宏/ISR 路由/外设门控/volatile/极性数量级/文档),
   涉执行器/传感器/闭环则标极性数量级检查点,涉独占 IO 外设则标归属与分核规划,判定是否先仿真后上板,
   产出模块设计卡 + 实施计划文件交接 hf-implement。触发:设计模块 / 加功能 / 新模块 / 切点 /
-  要不要先仿真 / 极性 / IO 归属 / design module / plan feature / incremental design。
+  要不要先仿真 / 极性 / IO 归属 / 功能方案 / 模块方案 / 先规划 / 接外设前设计 /
+  design module / plan feature / incremental design / feature plan / integration plan。
 license: MIT
 argument-hint: "[target]"
 metadata:

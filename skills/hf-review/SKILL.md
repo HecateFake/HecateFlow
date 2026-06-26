@@ -4,7 +4,8 @@ description: >
   提交前的深度工程审查:比每次编辑的 auto-workflow 更深,跨范围聚合 ISR/数值/外设安全、死代码(复用感知)、
   文档同步、跨 target 一致性、场景约束合规、lessons 覆盖,必要时派子代理分维度对抗审查,产出分级问题报告
   (CRITICAL/HIGH/MEDIUM)。触发:审查 / 审查工程 / 提交前检查 / 深度 review / 场景合规 / 多工程一致性 /
-  review / pre-commit review / audit codebase。
+  安全审查 / 代码审查 / 帮我检查 / 提交前 review / 合并前检查 / 质量检查 /
+  review / pre-commit review / audit codebase / code audit / safety review。
 license: MIT
 argument-hint: "[scope]"
 metadata:

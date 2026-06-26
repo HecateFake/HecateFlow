@@ -4,7 +4,8 @@ description: >
   增量实施一个模块设计/计划(build 阶段):按计划分阶段写源码,每次编辑后触发 hf-auto-workflow 审查,
   新文件委派 hf-build-sync 登记,改动委派 hf-doc-discipline 同步 PROJECT.md,修 bug/被纠正时触发
   hf-lessons 记录"不再犯",路径用相对、维护计划文件进度,完成后删计划并按 git-discipline 收尾。
-  触发:实现 / 写代码 / 进 build / 执行计划 / 修 bug 收尾 / implement / build feature / execute plan。
+  触发:实现 / 写代码 / 改代码 / 进 build / 执行计划 / 修 bug 收尾 / 按计划落地 / 开始开发 /
+  新增功能实现 / 修改源码 / implement / build feature / execute plan / code changes / develop feature。
 license: MIT
 argument-hint: "[plan-or-target]"
 metadata:

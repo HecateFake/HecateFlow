@@ -5,7 +5,8 @@ description: >
   风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设归属、
   lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属类显式请用户确认。是 HecateFlow 的
   always-on 核心。Claude 端可挂 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
-  auto workflow / post-edit review / 每次改完代码 / 极性提醒 / 相对路径检查 / IO 归属 / lessons 记录。
+  auto workflow / post-edit review / 每次改完代码 / 改完帮我检查 / 轻量检查 / 极性提醒 /
+  相对路径检查 / IO 归属 / lessons 记录 / after edit check / post tool review。
 license: MIT
 argument-hint: "[changed-path]"
 metadata:
