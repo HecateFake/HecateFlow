@@ -34,12 +34,12 @@ metadata:
 
 1. **安全**(调 `hf-embedded-safety`):ISR/volatile/数值/外设所有权全清单;**极性单一真相源**(无 Kp 藏极性、`*_DIR` 集中)与**数量级量纲**(增益/步长不混)调 `hf-hw-mapping` 视角。
 2. **死代码**(复用感知):零引用的 static 函数/变量、孤立废注释——但**排除**库对外 API、待接入链路、调试 gated 分支、对称储备符号(见 `hf-refactor` 的"有意保留")。
-3. **文档同步**(调 `hf-doc-discipline`):PROJECT.md 六段、共享库版本登记、规则自身是否随代码失效、分级文档导航是否更新(`references/tiered-docs.md`)。
+3. **文档同步**(调 `hf-doc-discipline`):PROJECT.md 六段、共享库版本登记、规则自身是否随代码失效、分级文档导航是否更新(`../references/tiered-docs.md`)。
 4. **跨 target / 多工程一致性**(点 2):高危同名文件语义未串(各 target 的"本 target 含义"已登记)、共享库副本差异已登记(真落后 vs 有意裁剪)、`_legacy/` 归档未被复用、关键词→target 映射表覆盖本次新增。
 5. **场景约束合规**(点 1,读 manifest `workspace.scenario`):本批改动是否违反工程**固化场景**的 `constraints`/`safetyRules`/`forbidden`(如赛规禁某类通信、安全规则禁某外设、禁离地等)→ 触犯 `forbidden`/`safetyRules` 即 CRITICAL。场景是"为什么"的常驻约束,审查须对照。
-6. **相对路径**(点 12,`activeChecks.relativePaths`):构建/include/LSP/脚本无绝对机器路径(见 `references/git-discipline.md`)。
+6. **相对路径**(点 12,`activeChecks.relativePaths`):构建/include/LSP/脚本无绝对机器路径(见 `../references/git-discipline.md`)。
 7. **lessons 覆盖**(点 7,引 `hf-lessons`):本批改动相关的 `.hecateflow/lessons/INDEX.md` 命中条目,其"如何避免"动作是否已落实;本次新踩的会复发的坑是否已记 lesson;反复/多 target 的 lesson 是否该升级为规则。
-8. **风格**(`references/embedded-c-style.md`):命名/类型/编码/条件编译。
+8. **风格**(`../references/embedded-c-style.md`):命名/类型/编码/条件编译。
 
 ## 执行流程
 
@@ -81,5 +81,5 @@ metadata:
 ## 参考
 
 - `hf-embedded-safety`(安全)、`hf-hw-mapping`(极性/数量级/IO 归属)、`hf-doc-discipline`(文档/版本登记)、`hf-lessons`(lessons 覆盖/升级)、`hf-refactor`(死代码/有意保留判定)。
-- `references/embedded-c-style.md`、`references/tiered-docs.md`(分级文档/多工程)、`references/git-discipline.md`(相对路径)。
-- `hf-auto-workflow`(轻量版);manifest `workspace.scenario` / `activeChecks`(见 `references/manifest-schema.md`)。
+- `../references/embedded-c-style.md`、`../references/tiered-docs.md`(分级文档/多工程)、`../references/git-discipline.md`(相对路径)。
+- `hf-auto-workflow`(轻量版);manifest `workspace.scenario` / `activeChecks`(见 `../hecateflow/references/manifest-schema.md`)。

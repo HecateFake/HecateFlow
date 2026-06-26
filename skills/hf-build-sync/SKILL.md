@@ -38,7 +38,7 @@ metadata:
 - 新增 `.c` 没进链接单元 → 链接期 `undefined reference`(或更隐蔽:调用点也没编,无报错但功能缺失)。
 - 新增 `.h` 所在**目录**没进 include 搜索路径 → 编译/索引找不到头。
 - 跨 target 复制工程文件节点 → 同名文件跨核语义可能不同,引入错误依赖。
-- **头里裸 `inline` 函数** 被多编译单元 include → "重复定义"或"无外部定义"链接错误。改 `.c` 显式链接或 `static inline`,**不靠手工展开规避**(详见 `references/embedded-c-style.md`)。
+- **头里裸 `inline` 函数** 被多编译单元 include → "重复定义"或"无外部定义"链接错误。改 `.c` 显式链接或 `static inline`,**不靠手工展开规避**(详见 `../references/embedded-c-style.md`)。
 - **工程/LSP 写绝对机器路径** → 跨机/跨人即断,工程不可移植。
 - **多层模式宏守卫不对齐**:函数定义守卫与调用守卫(如 `BUILD_MODE` + `TUNE_MODE` 两层)若三处不一致,某构建分支会"编译却无定义"→ 链接错误。新增/切模式时定义/调用守卫必须同步对齐。
 
@@ -50,7 +50,7 @@ metadata:
    - 把每个新 `.c`(和 `.h`)加进工程文件的源节点(IAR `<file>` / Keil `<File>` / CMake `target_sources` / Make `SRCS`)。
    - 新增**目录**时同步 include 搜索路径(工程文件)+ LSP `-I`(`.clangd` 或 `compile_commands.json`)。
 4. 实际编辑工程文件这一步由 `hf-implement` 落地(本 skill 产出"登记动作清单");单独调用时可直接给出 diff。
-5. **排"假未定义"**:遇 `undefined reference` / IAR 伪 `Li005 no definition` 时,除查登记,还要排两类**伪未定义**:① 链接脚本(`.icf`/`.ld`)注释含非 ASCII 致 ILINK 崩溃(看似缺符号,实为脚本编码;见 `hf-embedded-safety` + `references/embedded-c-style.md`);② 多层模式宏守卫不对齐致该分支无定义(见红线)。
+5. **排"假未定义"**:遇 `undefined reference` / IAR 伪 `Li005 no definition` 时,除查登记,还要排两类**伪未定义**:① 链接脚本(`.icf`/`.ld`)注释含非 ASCII 致 ILINK 崩溃(看似缺符号,实为脚本编码;见 `hf-embedded-safety` + `../references/embedded-c-style.md`);② 多层模式宏守卫不对齐致该分支无定义(见红线)。
 6. 跑下方清单核对。
 
 ## PASS/FAIL 清单
@@ -88,6 +88,6 @@ metadata:
 ## 参考
 
 - `references/build-systems.md`(IAR/Keil/CMake/Make/PlatformIO 逐个登记法 + **clangd 六条经验**:成对同步/深度分块 -I/优先 compile_commands/SDK 噪声 Suppress/跨 target 禁同步/PC 仿真独立 x86;含"先问用户是否用 clangd")。
-- `references/embedded-c-style.md`(`inline`→undefined 完整、ICF/链接脚本 ASCII 校验、相对路径优先)。
+- `../references/embedded-c-style.md`(`inline`→undefined 完整、ICF/链接脚本 ASCII 校验、相对路径优先)。
 - `hf-embedded-safety`(链接脚本非 ASCII 致伪 Li005——排"假未定义"的另一面)。
 - `hf-design-module`(切点清单含本步)、`hf-implement`(落地登记)、`hf-doc-discipline`(新文件登记到 PROJECT.md)、`hf-init-workspace`(初始化询问是否用 clangd → `workspace.lsp`)。

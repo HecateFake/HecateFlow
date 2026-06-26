@@ -34,7 +34,7 @@ metadata:
 
 ## 红线
 
-- **不搭自动注入就交付**:只生成 manifest 不写入口文件/不登记 instructions → 规则与 skill 没有任何 CLI 会自动加载,等于白写(见 `skills/hecateflow/references/auto-injection.md`)。
+- **不搭自动注入就交付**:只生成 manifest 不写入口文件/不登记 instructions → 规则与 skill 没有任何 CLI 会自动加载,等于白写(见 `../hecateflow/references/auto-injection.md`)。
 - **覆盖用户已有纲领**:工作区已有 `CLAUDE.md`/`AGENTS.md` 时**只补 manifest 与镜像登记,不覆盖正文**,丢失既有约定。
 - **场景全靠猜**:`workspace.scenario` 的约束/安全规则/禁止项是**用户领域知识**,探测不到就必须问,不自行编造(编出来的"安全规则"比没有更危险)。
 - **clangd 默认开**:未问就假定用 clangd → 后续 `hf-build-sync` 维护一堆 `.clangd -I` 而用户根本不用,徒增噪声;反之假定不用则虚假红线无人管。**必须显式问**。
@@ -65,9 +65,9 @@ metadata:
 
 ### 第三阶段:生成与搭建(写)
 
-9. **写 manifest**:用 `templates/manifest.json` 为骨架,填好后写 `.hecateflow/project.json`(读-改-写 + 按 `skills/hecateflow/references/manifest-schema.md` 校验)。**`paths.preferRelative:true`、所有路径字段填工作区相对路径**。
-10. **生成开发纲领**:用 `templates/workspace-guide.md.tmpl` 生成 `CLAUDE.md`(若已存在则只补 manifest 与镜像登记,不覆盖);填入第 5 步的场景作"架构总览/约束"段。
-11. **搭建自动注入(点 9 → `autoInjection`,引 `skills/hecateflow/references/auto-injection.md`)**:
+9. **写 manifest**:用 `../hecateflow/templates/manifest.json` 为骨架,填好后写 `.hecateflow/project.json`(读-改-写 + 按 `../hecateflow/references/manifest-schema.md` 校验)。**`paths.preferRelative:true`、所有路径字段填工作区相对路径**。
+10. **生成开发纲领**:用 `../hecateflow/templates/workspace-guide.md.tmpl` 生成 `CLAUDE.md`(若已存在则只补 manifest 与镜像登记,不覆盖);填入第 5 步的场景作"架构总览/约束"段。
+11. **搭建自动注入(点 9 → `autoInjection`,引 `../hecateflow/references/auto-injection.md`)**:
     - 写纲领入口 `CLAUDE.md` 与 `AGENTS.md`(同源镜像,含场景/target 识别/git 流程/相对路径纪律);登记 `mirrorPairs:[{a:"CLAUDE.md",b:"AGENTS.md"}]`。
     - 建 `.claude/rules/` 目录 + `README.md` 触发表(放场景化检查规则,分级见 `skills/references/tiered-docs.md`)。
     - 若用 OpenCode:生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
@@ -115,7 +115,7 @@ metadata:
 
 ## 参考
 
-- `templates/manifest.json`、`templates/workspace-guide.md.tmpl`、`skills/hecateflow/references/manifest-schema.md`。
-- `skills/hecateflow/references/auto-injection.md`(自动注入搭建步骤 + 镜像约束 + 各 CLI 对照)。
+- `../hecateflow/templates/manifest.json`、`../hecateflow/templates/workspace-guide.md.tmpl`、`../hecateflow/references/manifest-schema.md`。
+- `../hecateflow/references/auto-injection.md`(自动注入搭建步骤 + 镜像约束 + 各 CLI 对照)。
 - `skills/references/tiered-docs.md`(分级文档,决定 `.claude/rules/` 放什么)、`skills/references/git-discipline.md`(git 约定写入)。
 - `hf-init-project`(下一步:每 target 跑一次)、`hf-build-sync`(读 `workspace.lsp.clangd`)、`hf-doc-discipline`(维护注入)。

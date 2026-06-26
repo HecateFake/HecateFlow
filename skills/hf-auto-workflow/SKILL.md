@@ -43,7 +43,7 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 1. **volatile 扫描**:本次涉及的全局变量,若被 ISR 读写或被另一核访问而缺 `volatile` → CRITICAL,自动加。
 2. **ISR 安全**:若改了 ISR,禁止新增 `printf`/LCD/串口/阻塞 `while`/动态内存/不可预测耗时函数 → CRITICAL,自动修。
 3. **数值安全**:除零保护缺失、整型可能溢出、PID 无积分限幅、执行器输出无钳位 → HIGH,自动修(委派 `hf-embedded-safety` 视角)。
-4. **风格**:命名/固定宽度类型/浮点 `f` 后缀/UTF-8 无 BOM/条件编译(见 `references/embedded-c-style.md`)→ MEDIUM,提示不自动改。
+4. **风格**:命名/固定宽度类型/浮点 `f` 后缀/UTF-8 无 BOM/条件编译(见 `../references/embedded-c-style.md`)→ MEDIUM,提示不自动改。
 5. **文档同步**:触发同步的改动(模块增删/语义/参数/边界/共享库)而 PROJECT.md 没跟 → HIGH,提示补(委派 `hf-doc-discipline`)。
 
 ### 扩展检查(按 `activeChecks` 激活)
@@ -51,7 +51,7 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 这些检查**物理/归属/记忆类**问题 agent 无法靠静态分析独断,核心动作是**主动提醒并请用户确认**,不静默改。
 
 6. **极性/数量级提醒-确认**(`activeChecks.polarityMagnitude`):本次改动**触及执行器/传感器/闭环极性或增益数量级**时(改 `*_DIR` 方向系数、新增驱动接线、整定 PID Kp、改菜单步长、上 yaw/航向闭环)→ **不静默改、不自行假定极性**,在回复里显式请用户核实物理事实:此 `*_DIR` 是本台硬件标定结果需开环辨识、闭环轴向须手动转车确认、增益作用量纲与步长须同量级。**红线就地拦截:发现极性翻转藏进 PID Kp 负号 → CRITICAL**(Kp 兼增益+极性,误改即正反馈跑飞),提示搬回 §极性段方向系数宏(细节委派 `hf-hw-mapping`,搬迁属改行为走 `hf-refactor`)。
-7. **相对路径检查**(`activeChecks.relativePaths`):本次新增/改动的**构建配置、include、LSP `-I`、脚本**中若出现**绝对机器路径**(`<盘符>:\...`、`/home/...` 等)→ HIGH,提示改相对(`$PROJ_DIR$\..`、`-I./src`、`./tools/...`);绝对路径入库换机即坏(见 `references/git-discipline.md`、`references/embedded-c-style.md` 路径纪律)。
+7. **相对路径检查**(`activeChecks.relativePaths`):本次新增/改动的**构建配置、include、LSP `-I`、脚本**中若出现**绝对机器路径**(`<盘符>:\...`、`/home/...` 等)→ HIGH,提示改相对(`$PROJ_DIR$\..`、`-I./src`、`./tools/...`);绝对路径入库换机即坏(见 `../references/git-discipline.md`、`../references/embedded-c-style.md` 路径纪律)。
 8. **IO 外设归属确认**(`activeChecks.ioOwnership`):本次改动**触及单实例 IO 外设**(SPI 屏/共享总线/共享 ADC/调试 UART 等)时 → 核对该外设在 manifest `targets[].ownedPeripherals[]` 的 `owner` 是否与当前 target 一致;**门控须白名单 `#if`(非黑名单)**否则新增模式默认抢占 → HIGH;跨核归属敏感(`io:true`)→ 提醒用户该外设归属并促分核任务规划(细节委派 `hf-hw-mapping`/`hf-embedded-safety`)。
 9. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
 
@@ -102,10 +102,10 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 
 - 自动触发:Claude PostToolUse hook(harness 强制);Codex 靠 prompt 自律(无 hook)。
 - 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载/`spawn_agent`。
-- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`lessonsCapture` 为 true 时,Claude 端可在 PostToolUse hook 里提示这些主动确认;Codex 端编辑后自律执行(见 `references/auto-injection.md`)。
+- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`lessonsCapture` 为 true 时,Claude 端可在 PostToolUse hook 里提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考
 
 - `hf-embedded-safety`(安全门控/失控锁定/白名单 `#if`)、`hf-hw-mapping`(极性/数量级/IO 归属细节)、`hf-lessons`(记录/检索回路)、`hf-doc-discipline`(文档同步)。
-- `references/embedded-c-style.md`(风格 + 路径纪律)、`references/git-discipline.md`(相对路径与提交)、`references/auto-injection.md`(hook/自律触发)。
+- `../references/embedded-c-style.md`(风格 + 路径纪律)、`../references/git-discipline.md`(相对路径与提交)、`../hecateflow/references/auto-injection.md`(hook/自律触发)。
 - `hf-implement`(每编辑后调本 skill)、`hf-review`(深度版)。

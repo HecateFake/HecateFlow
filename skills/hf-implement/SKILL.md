@@ -34,7 +34,7 @@ metadata:
 
 - **攒一堆编辑最后统一审查**:CRITICAL 漏网且难定位。每次 Write/Edit 后立即跑 `hf-auto-workflow`。
 - **新文件忘登记构建系统**:自以为实现了,链接期 `undefined reference` 才发现(委派 `hf-build-sync`)。
-- **`git add .`**:把其它 agent/用户的工作区改动一锅端,污染提交、破坏并行协作。只显式 add 本次编辑文件(见 `references/git-discipline.md`)。
+- **`git add .`**:把其它 agent/用户的工作区改动一锅端,污染提交、破坏并行协作。只显式 add 本次编辑文件(见 `../references/git-discipline.md`)。
 - **回退非本次改动**:`git status` 里 agent 本次没碰的极性/增益/模式宏改动,往往是用户辛苦辨识的结果或其它 agent 的并行工作——原样保留,禁 `git checkout` 擅自丢弃。
 - **踩了会复发的坑却不记**:修了非显而易见的 bug / 被用户纠正了做法,不写 lesson → 换个 agent 又踩(触发 `hf-lessons`)。
 - **写绝对机器路径**:源码 `#include`、构建配置、计划文件引用一律相对路径,不写 `<盘符>:\...`。
@@ -50,7 +50,7 @@ metadata:
 
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
 2. **编辑前检索 lessons(recall)**:按 target / 关键词扫 `.hecateflow/lessons/INDEX.md`,命中则读对应 lesson 规避已知坑(见 `hf-lessons`;不查 = 白记)。
-3. 按计划写/改源码,遵循 `references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `references/git-discipline.md` / `hf-build-sync`)。
+3. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
 4. **新增文件** → 委派 `hf-build-sync`:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。
 5. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
 6. **改了模块清单/语义/参数/边界** → 委派 `hf-doc-discipline` 同步 PROJECT.md(同次提交,见同步矩阵)。
@@ -58,7 +58,7 @@ metadata:
 8. 勾选计划文件;阶段间不积压未审查代码。
 9. 全部完成:删计划文件 → Git 收尾(见下)。
 
-## Git 收尾(遵 `references/git-discipline.md`)
+## Git 收尾(遵 `../references/git-discipline.md`)
 
 - 提交格式按 manifest `git.commitFormat`;默认不替用户加 AI 署名(除非全局配置要求)。
 - **只显式 add 本次编辑文件,禁 `git add .`**;工作区里非本次任务的改动按"归因优先级"(落别的 target → 其它 agent;落调参/极性/模式宏 → 用户有意)原样保留,不回退。
@@ -99,7 +99,7 @@ metadata:
 
 ## 参考
 
-- `templates/integration-plan.md.tmpl`、`references/embedded-c-style.md`、`references/git-discipline.md`。
+- `../hecateflow/templates/integration-plan.md.tmpl`、`../references/embedded-c-style.md`、`../references/git-discipline.md`。
 - `hf-build-sync`、`hf-auto-workflow`、`hf-doc-discipline`、`hf-lessons`(修 bug 触发记录)。
 - `hf-design-module`(上游)、`hf-hw-mapping`(极性/数量级确认细节)。
-- manifest 字段:`planFile`/`git`/`lessons`/`activeChecks.lessonsCapture`(见 `skills/hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`planFile`/`git`/`lessons`/`activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。

@@ -50,10 +50,10 @@ metadata:
    - 对应 buildTarget(.ewp/cmake target 名)。
 3. **脚手架非扁平布局(点 6)**:按 `layout.subdirs` 建功能子目录骨架(`config/` 必建,放两类集中头);新增子目录须同步构建系统 include 搜索路径 + LSP `-I`(委派 `hf-build-sync`,`workspace.lsp.clangd=false` 时跳过 LSP)。
 4. **生成硬件映射头 + 参数调节头(点 6 & 11)**:
-   - 用 `templates/pinMap.h.tmpl` 生成 `config/pinMap.h`(零依赖纯 `#define`,按功能 `/* ===== 块 ===== */` 分组,命名 `{功能}_{通道}_{类型}`)。
-   - 用 `templates/config-header.h.tmpl` 生成 `config/configXxx.h`(分节 §A 时序/模式、§B/C/D 各环 PID 多实例独立增益、§E 几何+限幅+滤波、**§极性**、§F 故障/通信),头注写量纲约定。
+   - 用 `../hecateflow/templates/pinMap.h.tmpl` 生成 `config/pinMap.h`(零依赖纯 `#define`,按功能 `/* ===== 块 ===== */` 分组,命名 `{功能}_{通道}_{类型}`)。
+   - 用 `../hecateflow/templates/config-header.h.tmpl` 生成 `config/configXxx.h`(分节 §A 时序/模式、§B/C/D 各环 PID 多实例独立增益、§E 几何+限幅+滤波、**§极性**、§F 故障/通信),头注写量纲约定。
    - **初始化极性表入硬件映射(点 11)**:在 configHeader §极性段为每路执行器/传感器通道生成方向系数宏(`*_OUTPUT_DIR`/`ENCODER_*_DIR`/`CURRENT_SENSE_*_DIR`/轴映射符号),占位 `+1`,并注释"开环实测辨识、换硬件重辨识、改前核实接线"。登记 `headers.polaritySource` = 该 configHeader 的 §极性段。**提示用户:这些 ±1 须上板辨识**(细节交 `hf-hw-mapping`,本 skill 只奠基占位)。
-5. **生成 PROJECT.md**:用 `templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/边界/ISR/参数/验证清单。
+5. **生成 PROJECT.md**:用 `../hecateflow/templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/边界/ISR/参数/验证清单。
 6. **登记 manifest `targets[]`**(读-改-写,只追加本项):`layout{style,subdirs}`、`headers{pinMap,configHeaders,polaritySource}`、`ownedPeripherals[]`、`hazardFiles`、`docPath`、`buildTarget`。
 7. **IO 外设冲突检查 + 分核规划提示(点 13)**:
    - 扫已登记 targets 的 `ownedPeripherals`,新 target 的独占外设 `device` 不得与他者 owner 冲突(同一物理外设两个 owner = 抢占风险)。
@@ -91,8 +91,8 @@ metadata:
 
 ## 参考
 
-- `templates/PROJECT.md.tmpl`、`templates/pinMap.h.tmpl`、`templates/config-header.h.tmpl`。
+- `../hecateflow/templates/PROJECT.md.tmpl`、`../hecateflow/templates/pinMap.h.tmpl`、`../hecateflow/templates/config-header.h.tmpl`。
 - `hf-hw-mapping`(头组织/极性单一真相源/数量级/IO 归属的完整方法论;本 skill 只做初始化奠基)。
 - `hf-embedded-safety`(IO 外设门控机制 + 失控保护)、`hf-build-sync`(新子目录的构建/LSP 同步)。
 - `hf-doc-discipline`(PROJECT.md 维护)、`hf-init-workspace`(上游;`workspace.lsp`/`scenario`/`layout` 默认来源)。
-- manifest 字段:`targets[].layout`/`headers`/`ownedPeripherals[]`(见 `skills/hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`targets[].layout`/`headers`/`ownedPeripherals[]`(见 `../hecateflow/references/manifest-schema.md`)。

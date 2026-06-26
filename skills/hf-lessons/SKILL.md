@@ -29,7 +29,7 @@ metadata:
 | 时机 | 改代码的同次提交 | 踩坑/被纠正时记录;**相关编辑前**检索 |
 | 一句话 | 文档跟上代码(**同步**) | 坑别再踩(**记忆**) |
 
-衔接点:lesson **反复出现或多 target 相关 → 升级为 `.claude/rules` 段**,此后该规则的"代码改动→规则校准"重新归 `hf-doc-discipline` 的同步矩阵管。`references/tiered-docs.md` 的"不再犯回路"是两者共同的索引,本 skill 是它的**主实现**;doc-discipline 只引用、不复述。
+衔接点:lesson **反复出现或多 target 相关 → 升级为 `.claude/rules` 段**,此后该规则的"代码改动→规则校准"重新归 `hf-doc-discipline` 的同步矩阵管。`../references/tiered-docs.md` 的"不再犯回路"是两者共同的索引,本 skill 是它的**主实现**;doc-discipline 只引用、不复述。
 
 ## 适用 / 不适用
 
@@ -68,7 +68,7 @@ metadata:
 
 ## 二、lesson 文件结构 + 维护 INDEX
 
-### 单条 lesson(模板 `templates/lesson.md.tmpl`)
+### 单条 lesson(模板 `../hecateflow/templates/lesson.md.tmpl`)
 
 放 `.hecateflow/lessons/<slug>.md`,`<slug>` 用 kebab-case 概括(如 `gbk-utf8-fffd-scan-miss`、`icf-ascii-only`)。frontmatter + 三段正文:
 
@@ -77,7 +77,7 @@ metadata:
 - **根因(为什么会这样)**:第一性机制,不停在表象。
 - **如何避免(下次怎么不再犯)**:可执行规避动作 + **升级路径**(仅留 lesson / 升为 rule 段 / 并入 auto-workflow)。
 
-### 索引 INDEX.md(模板 `templates/lessons-index.md.tmpl`)
+### 索引 INDEX.md(模板 `../hecateflow/templates/lessons-index.md.tmpl`)
 
 `.hecateflow/lessons/INDEX.md` 是全部 lesson 的速查表,**相关编辑前先扫它**。每条 lesson 在"索引"表加一行(slug/type/target/trigger 命中场景);升级为规则的另列入"已升级为规则的"表。manifest `lessons.dir` / `lessons.index` 指向这两处。
 
@@ -90,7 +90,7 @@ record → recall → avoid → promote
  记录  → 检索  → 规避  → 升级
 ```
 
-1. **record(记录)**:命中"何时记录"任一条 → 用 `templates/lesson.md.tmpl` 新建 `<slug>.md`,在 `INDEX.md` 加一行。修 bug 场景由 `hf-implement` 收尾时触发;`activeChecks.lessonsCapture:true` 时 `hf-auto-workflow` 在踩坑/被纠正后提示记录。
+1. **record(记录)**:命中"何时记录"任一条 → 用 `../hecateflow/templates/lesson.md.tmpl` 新建 `<slug>.md`,在 `INDEX.md` 加一行。修 bug 场景由 `hf-implement` 收尾时触发;`activeChecks.lessonsCapture:true` 时 `hf-auto-workflow` 在踩坑/被纠正后提示记录。
 2. **recall(检索)**:**相关编辑前先按 target / trigger 关键词扫 `INDEX.md`** → 命中则读对应 lesson。这是回路最易被省略、却最关键的一环:不查 = 白记。
 3. **avoid(规避)**:按命中 lesson 的"如何避免"动作执行,绕开已知坑。
 4. **promote(升级)**:判断该经验是否该升到更强约束:
@@ -150,11 +150,11 @@ record → recall → avoid → promote
 
 ## 参考
 
-- 模板:`templates/lesson.md.tmpl`(frontmatter type/trigger + 症状/根因/如何避免)、`templates/lessons-index.md.tmpl`(INDEX + 已升级表)。
-- `references/tiered-docs.md`(分级文档的"不再犯回路"索引,本 skill 是其主实现)。
+- 模板:`../hecateflow/templates/lesson.md.tmpl`(frontmatter type/trigger + 症状/根因/如何避免)、`../hecateflow/templates/lessons-index.md.tmpl`(INDEX + 已升级表)。
+- `../references/tiered-docs.md`(分级文档的"不再犯回路"索引,本 skill 是其主实现)。
 - `hf-doc-discipline`(边界见上:doc 管同步、lessons 管记忆;升级后的规则校准归 doc-discipline 同步矩阵)。
 - `hf-implement`(修 bug 收尾触发记录)、`hf-auto-workflow`(编辑前检索 + 编辑后记录,`activeChecks.lessonsCapture`)。
 - `hf-hw-mapping`/`hf-embedded-safety`(极性/数量级/IO 归属类 lesson 的"升级去向"常落在这两个 skill 引用的规则段)。
-- 升级注入:`../hecateflow/references/auto-injection.md`;同次提交纪律:`references/git-discipline.md`。
-- manifest 字段:`lessons.dir` / `lessons.index` / `activeChecks.lessonsCapture`(见 `skills/hecateflow/references/manifest-schema.md`)。
+- 升级注入:`../hecateflow/references/auto-injection.md`;同次提交纪律:`../references/git-discipline.md`。
+- manifest 字段:`lessons.dir` / `lessons.index` / `activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。
 - 源工程经验记忆形态参考(只读出处):`D:\car\iarCode\core` 工作区的 harness memory(`iar-icf-ascii-only`、`core2-motor-runaway-protection` 等条目即 type/trigger + 症状/根因/如何避免 的实际写法)。

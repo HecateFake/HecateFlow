@@ -22,7 +22,7 @@ metadata:
 ## 适用 / 不适用
 
 - 适用:组织引脚/参数头、新增驱动接线、辨识或修改执行器/编码器/电流极性、整定 PID 增益与菜单步长、设计涉独占 IO 外设的模块。
-- 不适用:纯算法正确性(普通 review)、纯并发/钳位/失控安全(去 `hf-embedded-safety`)、纯编码风格(见 `references/embedded-c-style.md`)。
+- 不适用:纯算法正确性(普通 review)、纯并发/钳位/失控安全(去 `hf-embedded-safety`)、纯编码风格(见 `../references/embedded-c-style.md`)。
 
 ## 触发关键词
 
@@ -32,7 +32,7 @@ metadata:
 
 **"硬件契约"(引脚、极性、量纲)要从算法里抽出来,集中到可辨识、可改、爆炸半径有限的单一位置。** 三条推论:
 
-- **引脚是 HAL 事实,参数是整定事实,算法是逻辑——三层分离。** 引脚走 `pinMap.h`、可调参数走 `configHeader`、算法只依赖抽象接口。换芯片/换接线/换车体时**只动底层一处,算法层不改**(对齐 `references/embedded-c-style.md` 的"抽象分层与可移植封装")。
+- **引脚是 HAL 事实,参数是整定事实,算法是逻辑——三层分离。** 引脚走 `pinMap.h`、可调参数走 `configHeader`、算法只依赖抽象接口。换芯片/换接线/换车体时**只动底层一处,算法层不改**(对齐 `../references/embedded-c-style.md` 的"抽象分层与可移植封装")。
 - **极性属"参数"不属"引脚",且必须有唯一归属。** 物理方向(转向/反馈符号)是接线、安装、旋向与传感器决定的事实,集中在 `configHeader` 的 **§极性段**(每路执行器/传感器通道各一个可调方向系数宏,个数随硬件),**绝不分散藏进各驱动 .c 或 PID Kp 符号**。
 - **量纲与数量级是隐形契约。** 不同控制环、不同物理量的增益差几个数量级(速度环 Kp~23 vs 电流环 Kp~0.002,差 ~1e4),菜单步长必须与默认值/范围/钳位同量级。混用即失控或无响应。
 
@@ -59,9 +59,9 @@ project/code/
 └── ...
 ```
 
-新增 `config/` 等子目录须同步构建系统 include 路径与 LSP `-I`(见 `hf-build-sync`、`references/embedded-c-style.md` 路径纪律)。
+新增 `config/` 等子目录须同步构建系统 include 路径与 LSP `-I`(见 `hf-build-sync`、`../references/embedded-c-style.md` 路径纪律)。
 
-### pinMap.h —— HAL 引脚层(引 `templates/pinMap.h.tmpl`)
+### pinMap.h —— HAL 引脚层(引 `../hecateflow/templates/pinMap.h.tmpl`)
 
 - **零依赖纯 `#define`**:不 `#include` 任何驱动头;引脚值是驱动头提供的 token(`TCPWM_CHxx_Pyy` / `ADCz_CHxx` / GPIO 枚举),消费 `.c` 各自 include 对应驱动头展开。这让 pinMap.h **可被任意模块安全 include 而不引入耦合**(最小侵入)。
 - 按功能 `/* ===== 块 ===== */` 分组:执行器 PWM+方向、反馈传感器 INDEX+AB 相、模拟采样 ADC、人机接口(按键/蜂鸣/灯)、通信收发器(方向/RX/TX)。
@@ -69,7 +69,7 @@ project/code/
 - 易踩的语义就地注释:按键丝印顺序可能与其它板**反向**、收发器方向引脚的**高低电平语义**(高=发送/低=接收)。
 - 与跨核引脚冲突矩阵 `docs/PINOUT` 配对:**先改 pinMap.h 再更新矩阵**(pinMap 是源,矩阵是视图)。
 
-### configHeader —— 参数整定层(引 `templates/config-header.h.tmpl`)
+### configHeader —— 参数整定层(引 `../hecateflow/templates/config-header.h.tmpl`)
 
 编译期宏单一真相源,**带分节索引注释 + 量纲约定**,分节:
 - §A 调度时序与模式(ISR 周期 / 分频 / 构建变体宏)。
@@ -190,15 +190,15 @@ agent **触及以下任一**时,**不得静默改动、不得自行假定极性*
 
 - 主动提醒:Claude Code 在回复正文显式列"请确认 X";Codex 同。`activeChecks.polarityMagnitude`/`ioOwnership` 为 true 时,`hf-auto-workflow` 会在每次相关编辑后触发本提醒(Claude 端可挂 PostToolUse hook,Codex 端编辑后自律调用)。
 - 把藏 Kp 的极性搬回 §极性段属"改行为"重构,不能编译验证时派子代理对抗审查:Claude Code 用 `Task`(`subagent_type:"code-reviewer"`),Codex 用 `spawn_agent`→`wait_agent`→`close_agent`(详见 `hf-refactor`)。
-- 命名风格(camelCase / snake_case)随 manifest 与既有代码,匹配周围代码胜过模板默认(见 `references/embedded-c-style.md`)。
+- 命名风格(camelCase / snake_case)随 manifest 与既有代码,匹配周围代码胜过模板默认(见 `../references/embedded-c-style.md`)。
 
 ## 参考
 
-- 模板:`templates/pinMap.h.tmpl`、`templates/config-header.h.tmpl`(分节 §A..§极性..§F)。
-- `references/embedded-c-style.md`(抽象分层与可移植封装 / 嵌入式 OOP / 路径纪律)。
+- 模板:`../hecateflow/templates/pinMap.h.tmpl`、`../hecateflow/templates/config-header.h.tmpl`(分节 §A..§极性..§F)。
+- `../references/embedded-c-style.md`(抽象分层与可移植封装 / 嵌入式 OOP / 路径纪律)。
 - `hf-embedded-safety`(运行时门控机制:volatile/ISR/钳位/失控锁定/白名单 `#if`;极性藏 Kp 在其红线亦有一行)。
 - `hf-init-project`(非扁平脚手架 + 生成 pinMap/config 头 + 初始化极性表 + 登记 ownedPeripherals)。
 - `hf-design-module`(新模块放置 + 极性/数量级/IO 归属检查点)、`hf-refactor`(极性搬迁的零行为变化对抗审查)。
 - `hf-auto-workflow`(每次编辑触发极性/数量级提醒)、`hf-doc-discipline`(参数表/持久化同步)。
-- manifest 字段:`targets[].layout` / `targets[].headers{pinMap,configHeaders,polaritySource}` / `targets[].ownedPeripherals[]` / `activeChecks.polarityMagnitude`、`activeChecks.ioOwnership`(见 `skills/hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`targets[].layout` / `targets[].headers{pinMap,configHeaders,polaritySource}` / `targets[].ownedPeripherals[]` / `activeChecks.polarityMagnitude`、`activeChecks.ioOwnership`(见 `../hecateflow/references/manifest-schema.md`)。
 - 源工程案例出处(只读):`core2_cyt4bb7/project/code/config/{pinMap.h,configMotor.h}`(`D:\car\iarCode\core` 工作区)。

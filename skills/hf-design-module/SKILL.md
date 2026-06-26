@@ -29,7 +29,7 @@ metadata:
 
 ## 第一性原则
 
-**先复用,再抽象,最后才新写;接口对象式、放置遵布局、改动范围在写第一行代码前就框定。** 嵌入式新模块的隐性成本不在主逻辑,而在"散落各处必须同步的切点"——漏一处就是链接错误、抢外设、极性失控或文档漂移。设计阶段的价值就是把这些切点提前列全,并把"为复用而设计"的对象式接口与非扁平放置一次定好(对齐 `references/embedded-c-style.md` 的抽象分层)。
+**先复用,再抽象,最后才新写;接口对象式、放置遵布局、改动范围在写第一行代码前就框定。** 嵌入式新模块的隐性成本不在主逻辑,而在"散落各处必须同步的切点"——漏一处就是链接错误、抢外设、极性失控或文档漂移。设计阶段的价值就是把这些切点提前列全,并把"为复用而设计"的对象式接口与非扁平放置一次定好(对齐 `../references/embedded-c-style.md` 的抽象分层)。
 
 ## 红线
 
@@ -43,9 +43,9 @@ metadata:
 
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
 2. **复用调研**(优先级严格递减):① 本仓已有库/抽象(clamp/wrap/PID/低通/数学工具)→ ② 现成外部库 → ③ 才新建。重点找"为复用而设计却被手写绕过"的抽象。结论填进设计卡的复用表。
-3. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。接口契约(单位/量纲/极性/返回语义)写头注释。详见 `references/embedded-c-style.md` 嵌入式 OOP 段。
+3. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。接口契约(单位/量纲/极性/返回语义)写头注释。详见 `../references/embedded-c-style.md` 嵌入式 OOP 段。
 4. **放置(非扁平,点 6)**:据 manifest `targets[].layout.subdirs` 决定新模块落哪个功能子目录(控制→`control/`、驱动→`sensor/comm/`、参数→`config/`);引脚从 `config/pinMap.h` 取、参数从 `configHeader` 取,不硬编码。新增子目录须同步构建 include 路径 + LSP `-I`(切点见步 5)。
-5. **切点清单**(用 `templates/module-design.md.tmpl`),逐项列全:
+5. **切点清单**(用 `../hecateflow/templates/module-design.md.tmpl`),逐项列全:
    - 源文件登记(构建系统 + LSP,见 `hf-build-sync`;路径相对)。
    - 构建变体宏(若引入新模式 → 定义/调用/ISR 路由三处守卫对齐)。
    - ISR 路由 / 周期(若挂中断)。
@@ -61,7 +61,7 @@ metadata:
    - 细节方法论交 `hf-hw-mapping`,本步只把它列为必经检查点 + 生成提醒文案。
 8. **先仿真后上板判定**:模块是否含可在 PC 验证的算法/几何/协议?是 → 标注先用仿真工具(manifest `simulation.tools`)验证再上板。
 9. **安全预检**:调 `hf-embedded-safety` 视角过一遍(新模块有无并发/数值/外设/极性风险)。
-10. 产出设计卡 + 初始化实施计划文件(`templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
+10. 产出设计卡 + 初始化实施计划文件(`../hecateflow/templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
 
 ## PASS/FAIL 清单
 
@@ -96,8 +96,8 @@ metadata:
 
 ## 参考
 
-- `templates/module-design.md.tmpl`、`templates/integration-plan.md.tmpl`。
-- `references/embedded-c-style.md`(抽象分层 / 嵌入式 OOP / 路径纪律)。
+- `../hecateflow/templates/module-design.md.tmpl`、`../hecateflow/templates/integration-plan.md.tmpl`。
+- `../references/embedded-c-style.md`(抽象分层 / 嵌入式 OOP / 路径纪律)。
 - `hf-hw-mapping`(极性/数量级/头组织/IO 归属完整方法论,本 skill 把它列为检查点)。
 - `hf-build-sync`(源登记/LSP)、`hf-embedded-safety`(安全预检 + 外设门控机制)、`hf-implement`(落地)、`hf-refactor`(复用方法论)。
-- manifest 字段:`targets[].layout`/`headers`/`ownedPeripherals[]`(见 `skills/hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`targets[].layout`/`headers`/`ownedPeripherals[]`(见 `../hecateflow/references/manifest-schema.md`)。
