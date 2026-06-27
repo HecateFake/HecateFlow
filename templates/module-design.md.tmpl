@@ -25,6 +25,13 @@ void {{module}}Update({{MODULE}}Struct *p, /* inputs */);
 void {{module}}Reset({{MODULE}}Struct *p);
 ```
 
+若本模块触及硬件驱动实例:
+
+- 代码级 owner:{{DRIVER_OWNER}}
+- 对象式管理方式(`xxxDriverStruct`/模块私有对象):{{DRIVER_OBJECT_MODEL}}
+- owner 负责:init / config / static state / update:{{DRIVER_OWNER_SCOPE}}
+- 其它模块访问方式(API/接口/注入绑定):{{DRIVER_ACCESS}}
+
 ## 切点清单(漏一处即翻车）
 
 新增/接入本模块需同步以下全部位点:
@@ -33,6 +40,7 @@ void {{module}}Reset({{MODULE}}Struct *p);
 - [ ] **宏/构建变体**:{{MACRO_TOUCHPOINT}}(若引入新模式)
 - [ ] **ISR 路由 / 周期**:{{ISR_TOUCHPOINT}}(若挂中断)
 - [ ] **外设所有权门控**:{{PERIPHERAL_GATE}}(若占用独占外设,用白名单 #if)
+- [ ] **驱动 owner**:{{DRIVER_OWNER_CHECK}}(若触及同一硬件驱动实例,必须单一对象式 owner,避免竞态和多头管理)
 - [ ] **共享数据 volatile**:{{VOLATILE_TOUCHPOINT}}(若跨 ISR/核共享)
 - [ ] **文档同步**:PROJECT.md 模块清单 + 边界(见 hf-doc-discipline)
 

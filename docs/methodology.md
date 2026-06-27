@@ -161,6 +161,12 @@ agent 不会读它没被注入的规则。源工程靠三类通道保证规则/s
 
 → 落地:`hf-hw-mapping`(设计期归属提醒)+ `hf-embedded-safety`(白名单门控机制)+ `hf-init-project`(登记 + 冲突检查)。
 
+### 24. 硬件驱动代码级单一 owner / Hardware drivers need one code owner
+
+外设"归哪个核"之外,还要回答"同一硬件驱动实例在代码里归哪个模块管"。同一屏、IMU、总线、电机驱动或 ADC 前端若被多个 `.c` 文件各自保存状态、重复 `init/set/update`,配置缓存、惰性 setter、初始化顺序、并发门控和竞态边界都会变成隐形共享状态,表现为"设了不生效""偶发被覆盖""谁最后写硬件谁赢"。根治:一个硬件驱动实例尽量只有一个代码级 owner,按面向对象思路把状态封进 `xxxDriverStruct` 或模块私有对象,由它负责 `init/config/static state/update`;其它模块通过 owner API、接口结构或 init 期函数指针绑定访问。`static` 用来隐藏 owner 内部状态,不是让多个文件各自管理同一硬件。
+
+→ 落地:`hf-hw-mapping`(代码级驱动 owner 规则)+ `hf-design-module`(设计卡强制写 owner/访问方式)+ `hf-auto-workflow`/`hf-review`(审查多头状态管理与竞态)+ `hf-init-project`/`PROJECT.md` 模板(新 target 留 owner 清单)。
+
 ---
 
 ## 三、持久化交互记忆 / The persistent manifest

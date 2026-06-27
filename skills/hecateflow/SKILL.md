@@ -55,7 +55,7 @@ HecateFlow Route:
 | 提交前审查、深度 review、场景合规 | `hf-review` |
 | 重构、去重、精简、复用已有库(不改行为) | `hf-refactor` |
 | 查 ISR/数值/外设安全 | `hf-embedded-safety` |
-| 引脚/硬件映射头、参数头、**极性/方向系数**、数量级/增益/步长、IO 归属 | `hf-hw-mapping` |
+| 引脚/硬件映射头、参数头、**极性/方向系数**、数量级/增益/步长、IO 归属、驱动 owner | `hf-hw-mapping` |
 | 新文件登记、undefined reference、clangd 报错 | `hf-build-sync` |
 | 文档同步、PROJECT.md、版本登记、分级文档 | `hf-doc-discipline` |
 | **经验记录/踩坑/教训/不再犯**、复盘、被纠正、好做法沉淀 | `hf-lessons` |
@@ -72,7 +72,7 @@ HecateFlow Route:
 3. **AskUserQuestion schema**:`questions` 为数组,每项含 `question`/`header`/`options`(2–4 个 `{label,description}`);校验失败最多重试一次,再失败改纯文字询问。Codex 无此工具 → 用文字编号选项。
 4. **Git 纪律**:提交格式见 manifest `git.commitFormat`;只显式 add 本次编辑文件,**禁止 `git add .`**;工作区里非本次任务产生的改动默认视为用户有意为之,原样保留不擅自回退;多远端全推。细则见 `../references/git-discipline.md`。
 5. **相对路径(点 12,横切)**:目标工程的构建配置(`$PROJ_DIR$\..`)/include/LSP `-I`/脚本一律**优先相对路径**,绝对机器路径(`<盘符>:\...`)入库换机即坏(`paths.preferRelative`)。
-6. **极性/IO 归属主动确认(点 11 & 13)**:触及执行器/传感器/闭环极性、增益数量级、单实例 IO 外设归属时,**主动提醒用户并请确认物理事实/分核规划,不自行假定极性**(细节 `hf-hw-mapping`)。
+6. **极性/IO/驱动 owner 主动确认(点 11/13/24)**:触及执行器/传感器/闭环极性、增益数量级、单实例 IO 外设归属或同一硬件驱动代码级 owner 时,**主动提醒用户并请确认物理事实/分核规划/owner 边界,不自行假定极性或多头管理驱动**(细节 `hf-hw-mapping`)。
 7. **经验不再犯(点 7)**:相关编辑前先检索 `.hecateflow/lessons/INDEX.md` 命中规避;踩坑/被纠正后记 lesson(`hf-lessons`)。
 8. **交互自定义**:每个 skill 读 manifest 做默认值,只问缺失项,用完写回(读-改-写 + 校验,各 agent 只改自己的 `targets[]` 项降低写竞争)。
 

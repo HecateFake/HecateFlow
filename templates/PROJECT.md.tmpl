@@ -28,6 +28,14 @@
 |------|------|
 | {{FILE}} | {{PURPOSE}} |
 
+### 代码级驱动 owner
+
+同一物理硬件驱动实例尽量只归一个 owner 模块,用对象式实例负责 init/config/static state/update;其它模块通过 owner API、接口结构或 init 期绑定访问,避免竞态和管理混乱。
+
+| 硬件 / 驱动实例 | owner 模块 / 对象 | 其它模块访问方式 |
+|----------------|-----------------|------------------|
+| {{DRIVER_DEVICE}} | {{DRIVER_OWNER}} | {{DRIVER_ACCESS}} |
+
 ## 3. 高危文件 / 引脚总览
 
 跨 target 同名不同义文件(编辑前必须公告 target):

@@ -2,11 +2,11 @@
 name: hf-auto-workflow
 description: >
   每次编辑源文件后立即自动跑的轻量审查门:核心 6 步(目标确认 → volatile 扫描 → ISR 安全 → 数值安全 →
-  风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设归属、
+  风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设/驱动 owner 归属、
   lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属类显式请用户确认。是 HecateFlow 的
   always-on 核心。Claude 端可挂 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
   auto workflow / post-edit review / 每次改完代码 / 改完帮我检查 / 轻量检查 / 极性提醒 /
-  相对路径检查 / IO 归属 / lessons 记录 / after edit check / post tool review。
+  相对路径检查 / IO 归属 / 驱动 owner / 硬件驱动归属 / lessons 记录 / after edit check / post tool review。
 license: MIT
 argument-hint: "[changed-path]"
 metadata:
@@ -37,7 +37,7 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 1. 确认 target 与文件语义,高危同名文件先公告。
 2. 扫本次改动里的 ISR/共享变量/执行器输出/除零和钳位。
 3. 扫新增路径是否绝对路径,新增文件是否需要构建登记。
-4. 若触及极性/增益/IO 归属,明确请用户确认物理事实,不自行假定。
+4. 若触及极性/增益/IO 归属/硬件驱动 owner,明确请用户确认物理事实或 owner 边界,不自行假定。
 5. 输出一行摘要 + 下方简表。
 
 ```text
@@ -73,7 +73,7 @@ HecateFlow Auto:
 
 6. **极性/数量级提醒-确认**(`activeChecks.polarityMagnitude`):本次改动**触及执行器/传感器/闭环极性或增益数量级**时(改 `*_DIR` 方向系数、新增驱动接线、整定 PID Kp、改菜单步长、上 yaw/航向闭环)→ **不静默改、不自行假定极性**,在回复里显式请用户核实物理事实:此 `*_DIR` 是本台硬件标定结果需开环辨识、闭环轴向须手动转车确认、增益作用量纲与步长须同量级。**红线就地拦截:发现极性翻转藏进 PID Kp 负号 → CRITICAL**(Kp 兼增益+极性,误改即正反馈跑飞),提示搬回 §极性段方向系数宏(细节委派 `hf-hw-mapping`,搬迁属改行为走 `hf-refactor`)。
 7. **相对路径检查**(`activeChecks.relativePaths`):本次新增/改动的**构建配置、include、LSP `-I`、脚本**中若出现**绝对机器路径**(`<盘符>:\...`、`/home/...` 等)→ HIGH,提示改相对(`$PROJ_DIR$\..`、`-I./src`、`./tools/...`);绝对路径入库换机即坏(见 `../references/git-discipline.md`、`../references/embedded-c-style.md` 路径纪律)。
-8. **IO 外设归属确认**(`activeChecks.ioOwnership`):本次改动**触及单实例 IO 外设**(SPI 屏/共享总线/共享 ADC/调试 UART 等)时 → 核对该外设在 manifest `targets[].ownedPeripherals[]` 的 `owner` 是否与当前 target 一致;**门控须白名单 `#if`(非黑名单)**否则新增模式默认抢占 → HIGH;跨核归属敏感(`io:true`)→ 提醒用户该外设归属并促分核任务规划(细节委派 `hf-hw-mapping`/`hf-embedded-safety`)。
+8. **IO 外设 / 驱动 owner 归属确认**(`activeChecks.ioOwnership`):本次改动**触及单实例 IO 外设**(SPI 屏/共享总线/共享 ADC/调试 UART 等)时 → 核对该外设在 manifest `targets[].ownedPeripherals[]` 的 `owner` 是否与当前 target 一致;**门控须白名单 `#if`(非黑名单)**否则新增模式默认抢占 → HIGH;跨核归属敏感(`io:true`)→ 提醒用户该外设归属并促分核任务规划。若本次改动**触及硬件驱动实例的 init/config/static state/update 或底层寄存器/引脚访问** → 检查同一驱动是否只有一个代码级 owner;发现多个 `.c` 各自维护驱动状态、重复 init/set、或绕过 owner API 直接访问底层 → HIGH,提示收敛到对象式 owner + API/接口/注入绑定,避免竞态和管理混乱(细节委派 `hf-hw-mapping`/`hf-embedded-safety`)。
 9. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
 
 ## 严重级别与行动
@@ -101,6 +101,7 @@ HecateFlow Auto:
 - [ ] 触及极性/轴向/数量级时已**显式请用户确认物理事实**,未自行假定极性。
 - [ ] 新增构建/include/LSP/脚本无绝对机器路径(相对路径)。
 - [ ] 触及单实例 IO 外设时已核对归属 + 门控为白名单 `#if`;跨核敏感已提醒分核规划。
+- [ ] 触及硬件驱动状态/初始化/底层访问时已核对代码级 owner;无重复驱动状态、重复 init/set、竞态访问或绕过 owner API。
 - [ ] 本次踩坑/被纠正/好做法已提示按 `hf-lessons` 记录;编辑前命中的 lesson 规避动作已落实。
 - [ ] 未审查 SDK/第三方/仿真 PC 代码。
 - [ ] 输出了一行摘要。
@@ -118,6 +119,7 @@ HecateFlow Auto:
 - 编辑后不审、攒到提交 → 一次提交里多个 CRITICAL,定位困难。
 - 改了 `*_DIR` 极性自行假定方向不提醒用户 → 在未标定映射上调正号 Kp,上板正反馈跑飞(极性属物理事实,agent 不能独断)。
 - 新增 `.clangd`/`.ewp` 顺手写了绝对盘符路径 → 换机/换人检出即坏,本该相对路径。
+- 同一驱动被多个模块各自管理状态 → setter/init 顺序和缓存状态互相覆盖,表现为"偶发不生效";编辑后应立即收敛为对象式 owner,避免竞态。
 - 编辑前不检索 lessons、编辑后也不记录 → 同类坑(GBK 编码、ICF ASCII)换会话又踩,"不再犯"沦为空话。
 
 ## 平台差异

@@ -3,9 +3,9 @@ name: hf-init-project
 description: >
   为工作区里的一个 target(核/芯片/固件)做初始化:确定职责、脚手架非扁平功能子目录布局,
   生成硬件映射头 pinMap.h + 参数调节头 configXxx.h(含 §极性方向系数表),登记独占 IO 外设所有权
-  并做跨 target 冲突检查 + 主动提示分核任务规划,标记同名高危文件,生成 PROJECT.md 并追加到 targets[]。
+  并做跨 target 冲突检查 + 主动提示分核任务规划,标记代码级驱动 owner 与同名高危文件,生成 PROJECT.md 并追加到 targets[]。
   每个 target 一次。触发:初始化工程 / 登记核 / 加 target / 新建 PROJECT.md / 非扁平布局 / pinMap /
-  外设归属 / 分核规划 / 新增固件 / 新增芯片 / 新增 core / 生成 config 头 / 生成引脚表 /
+  外设归属 / 分核规划 / 驱动所有者 / 硬件驱动归属 / 新增固件 / 新增芯片 / 新增 core / 生成 config 头 / 生成引脚表 /
   init project / register target / scaffold core / add firmware target / create PROJECT.md。
 license: MIT
 argument-hint: "[target-id]"
@@ -17,7 +17,7 @@ metadata:
 
 # hf-init-project — Target 初始化 / Per-Target Init
 
-为单个可独立构建的 target(一个核、一个芯片、一份固件)建立它的真相源 PROJECT.md + 物理脚手架(非扁平布局 + 硬件映射头 + 参数头 + 极性表 + 外设归属),并登记进 manifest `targets[]`。`hf-init-workspace` 之后,每个 target 跑一次。本次(v1.1)在原"职责+外设+高危文件+PROJECT.md"上,新增**脚手架与硬件契约奠基**:非扁平布局(点 6)、pinMap/config 头(点 6)、极性表入硬件映射头(点 11)、IO 外设归属冲突检查 + 分核规划提示(点 13)。
+为单个可独立构建的 target(一个核、一个芯片、一份固件)建立它的真相源 PROJECT.md + 物理脚手架(非扁平布局 + 硬件映射头 + 参数头 + 极性表 + 外设归属 + 驱动 owner),并登记进 manifest `targets[]`。`hf-init-workspace` 之后,每个 target 跑一次。本次(v1.1)在原"职责+外设+高危文件+PROJECT.md"上,新增**脚手架与硬件契约奠基**:非扁平布局(点 6)、pinMap/config 头(点 6)、极性表入硬件映射头(点 11)、IO 外设归属冲突检查 + 分核规划提示(点 13)。
 
 ## 适用 / 不适用
 
@@ -26,11 +26,11 @@ metadata:
 
 ## 触发关键词
 
-初始化工程 / 登记核 / 加 target / 新建 PROJECT.md / 非扁平布局 / pinMap / 外设归属 / 分核规划 / init project / register target。
+初始化工程 / 登记核 / 加 target / 新建 PROJECT.md / 非扁平布局 / pinMap / 外设归属 / 分核规划 / 驱动所有者 / 硬件驱动归属 / init project / register target。
 
 ## 第一性原则
 
-**每个 target 是独立的认知单元,且它的"硬件契约"必须在第一天就被抽离集中。** 一个无上下文的 agent 应能只读该 target 的 PROJECT.md 就在其内独立工作;而引脚、极性、量纲这类"硬件契约"若不在初始化时就抽进集中头,后续每个模块都会就地硬编码,换接线/换车体即全工程翻找,还可能在大电流执行器上酿成物理事故。所以初始化时必须同时明确:它是谁(职责)、它的代码怎么摆(非扁平布局)、它的硬件契约在哪(pinMap/config/极性表)、它独占什么 IO 外设(归属 + 分核规划)、它有哪些同名异义高危文件。
+**每个 target 是独立的认知单元,且它的"硬件契约"必须在第一天就被抽离集中。** 一个无上下文的 agent 应能只读该 target 的 PROJECT.md 就在其内独立工作;而引脚、极性、量纲、代码级驱动 owner 这类"硬件契约"若不在初始化时就抽进集中头/清单,后续每个模块都会就地硬编码或多头管理同一驱动状态,换接线/换车体/换驱动即全工程翻找,还会引入竞态和生命周期混乱,并可能在大电流执行器上酿成物理事故。所以初始化时必须同时明确:它是谁(职责)、它的代码怎么摆(非扁平布局)、它的硬件契约在哪(pinMap/config/极性表)、它独占什么 IO 外设(归属 + 分核规划)、哪些硬件驱动由哪个对象式 owner 模块负责、它有哪些同名异义高危文件。
 
 ## 红线
 
@@ -38,6 +38,7 @@ metadata:
 - **引脚硬编码不进 pinMap**:引脚必须在零依赖纯 `#define` 的 `pinMap.h` 唯一定义,不散落驱动 `.c`。
 - **极性表照抄旧值当固定常量**:`*_DIR` 的 ±1 是**本台硬件开环实测辨识**结果,脚手架只生成占位 `+1`,**必须提示用户上板辨识**,不替用户假定。
 - **两个 target 占同一 IO 外设不指 owner/门控**:运行期抢占(屏乱码/总线冲突)。新 target 的独占外设 owner 必须与已登记 target 无冲突,且**带 IO 的外设须主动提示分核任务规划**。
+- **硬件驱动 owner 不落 PROJECT.md**:同一驱动实例后续会被多个模块各自管理状态,init/set/update 生命周期混乱并产生竞态。初始化时至少在 PROJECT.md 留出"代码级驱动 owner"清单。
 - **整体覆盖 targets[]**:写 manifest 时只追加本项,绝不整体覆盖(抹掉其他 agent 并行登记的 target)。
 
 ## 执行流程
@@ -47,6 +48,7 @@ metadata:
    - target id / 职责描述 / 是否多核 MCU(subCores)。
    - **布局风格**(点 6):`feature-subdirs`(按功能分子目录,推荐)还是 `flat`;子目录集(默认 `app/control/sensor/comm/config/util`,按 domain 调整)。
    - **独占 IO 外设**(点 13):占用哪些单实例外设(SPI 屏/总线/共享 ADC/调试 UART),owner 是哪个子核,是否带 IO,门控方式(白名单 `#if`)。
+   - **代码级驱动 owner**(点 24):本 target 内哪些硬件驱动实例需要单一 owner(如 display/IMU/motor/ADC/bus),owner 模块是谁,如何按对象式方式持有实例状态,其它模块如何访问(API/接口/注入绑定)。
    - **高危同名文件**:与其它 target 同名但语义不同的文件(motor.c/IMU.c/PID.c 类),列"本 target 含义"。
    - 对应 buildTarget(.ewp/cmake target 名)。
 3. **脚手架非扁平布局(点 6)**:按 `layout.subdirs` 建功能子目录骨架(`config/` 必建,放两类集中头);新增子目录须同步构建系统 include 搜索路径 + LSP `-I`(委派 `hf-build-sync`,`workspace.lsp.clangd=false` 时跳过 LSP)。
@@ -54,7 +56,7 @@ metadata:
    - 用 `../hecateflow/templates/pinMap.h.tmpl` 生成 `config/pinMap.h`(零依赖纯 `#define`,按功能 `/* ===== 块 ===== */` 分组,命名 `{功能}_{通道}_{类型}`)。
    - 用 `../hecateflow/templates/config-header.h.tmpl` 生成 `config/configXxx.h`(分节 §A 时序/模式、§B/C/D 各环 PID 多实例独立增益、§E 几何+限幅+滤波、**§极性**、§F 故障/通信),头注写量纲约定。
    - **初始化极性表入硬件映射(点 11)**:在 configHeader §极性段为每路执行器/传感器通道生成方向系数宏(`*_OUTPUT_DIR`/`ENCODER_*_DIR`/`CURRENT_SENSE_*_DIR`/轴映射符号),占位 `+1`,并注释"开环实测辨识、换硬件重辨识、改前核实接线"。登记 `headers.polaritySource` = 该 configHeader 的 §极性段。**提示用户:这些 ±1 须上板辨识**(细节交 `hf-hw-mapping`,本 skill 只奠基占位)。
-5. **生成 PROJECT.md**:用 `../hecateflow/templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/边界/ISR/参数/验证清单。
+5. **生成 PROJECT.md**:用 `../hecateflow/templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/代码级驱动 owner 清单/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/边界/ISR/参数/验证清单。
 6. **登记 manifest `targets[]`**(读-改-写,只追加本项):`layout{style,subdirs}`、`headers{pinMap,configHeaders,polaritySource}`、`ownedPeripherals[]`、`hazardFiles`、`docPath`、`buildTarget`。
 7. **IO 外设冲突检查 + 分核规划提示(点 13)**:
    - 扫已登记 targets 的 `ownedPeripherals`,新 target 的独占外设 `device` 不得与他者 owner 冲突(同一物理外设两个 owner = 抢占风险)。
@@ -67,13 +69,14 @@ metadata:
 - [ ] 生成了 `config/pinMap.h`(零依赖纯 `#define`)+ `config/configXxx.h`(分节 + §极性段)。
 - [ ] §极性段为每路通道生成了方向系数宏(占位 +1),注释"须开环辨识/换硬件重辨识/改前核实接线";`headers.polaritySource` 已登记;已提示用户上板辨识。
 - [ ] 高危同名文件已列"本 target 含义"。
+- [ ] PROJECT.md 已留出代码级驱动 owner 清单(硬件实例 / owner 模块 / 对象式实例 / 访问方式),避免后续多头状态管理和竞态。
 - [ ] 独占 IO 外设 owner 与已登记 target 无冲突;`io:true` 外设已 `planNote` 且**已提示分核任务规划**。
 - [ ] manifest `targets[]` 仅追加本项,未动其它项;路径全相对。
 - [ ] `docPath`/`buildTarget`/`headers.*` 与实际路径一致。
 
 ## 验证
 
-- agent 能做:脚手架布局、生成头/PROJECT.md、追加 manifest、查外设冲突、生成极性占位表与提醒。
+- agent 能做:脚手架布局、生成头/PROJECT.md、追加 manifest、查外设冲突、生成极性占位表与提醒、为 PROJECT.md 建代码级驱动 owner 清单骨架。
 - 交用户:确认职责与 IO 外设所有权(关系到安全门控);**§极性段每个 `*_DIR` 的 ±1 须上板开环辨识**(agent 无法验证物理方向,见 `hf-hw-mapping`)。
 
 ## 反面教训
@@ -84,6 +87,7 @@ metadata:
 - **引脚没建集中头,直接让各驱动 `.c` 硬编码** → 换接线全工程翻找,漏改一处行为诡异。
 - 写 manifest 时整体覆盖 targets[] → 抹掉其他 agent 并行登记的 target。
 - `io:true` 外设登记了 owner 却不提分核规划 → 其它核 agent 不知道要让出,新增模式默认抢占。
+- PROJECT.md 没有驱动 owner 清单 → 后续模块各自管屏/总线/传感器状态,竞态边界、初始化和配置责任失去唯一答案。
 
 ## 平台差异
 
