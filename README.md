@@ -14,9 +14,9 @@ HecateFlow organizes the full embedded lifecycle — from workspace bootstrap to
 
 ## 为什么 / Why
 
-裸机/实时嵌入式的真正成本不在算法,而在反复踩的坑:漏 `volatile` 的幽灵 bug、ISR 里的阻塞、执行器无钳位、**极性藏进 PID Kp 负号致正反馈跑飞**、新文件忘登记进 IAR/Keil 工程导致链接错误、文档与代码漂移、构建变体改一处漏五处、ICF 注释混中文崩链接器、绝对机器路径入库换机即坏。HecateFlow 把这些经验固化成**可逐项判定的清单**和**带交互的工作流**,让它们可复用到任意嵌入式工程。
+裸机/实时嵌入式的真正成本不在算法,而在反复踩的坑:漏 `volatile` 的幽灵 bug、ISR 里的阻塞、执行器无钳位、**极性藏进 PID Kp 负号致正反馈跑飞**、新文件忘登记进 IAR/Keil 工程导致链接错误、文档与代码漂移、构建变体改一处漏五处、ICF 注释混中文崩链接器、绝对机器路径入库换机即坏,以及排查 bug 时把"用户结论"或"SDK/provider 不会错"直接当事实。HecateFlow 把这些经验固化成**可逐项判定的清单**和**带交互的工作流**,让它们可复用到任意嵌入式工程。
 
-v1.1 深化的工程纪律(均 MCU 无关):**固化场景**(把赛规/安全约束写进 manifest 常驻贯穿)、**单工作区多工程管理**(关键词→target 路由 + 同名异义登记 + 共享库版本登记)、**分级分布式文档**(三层按需下钻省上下文)、**自动进化学习**(代码改动→必同步文档矩阵)、**经验记忆不再犯**(本地 `.hecateflow/lessons/` 跨平台 record→recall→avoid→promote)、**硬件映射头 + 参数头 + 极性单一真相源**(三组方向系数 + 开环辨识 + 禁藏 Kp 负号 + 闭环轴向对齐 + 数量级理智检查)、**硬件驱动代码级单一 owner**(面向对象式实例/API 管理,避免竞态和多头管理混乱)、**自动注入**(规则/skill 在各 CLI 被自动加载发现)、**clangd 配置管理**(初始化先问是否用 + 六条同步经验)、**IO 外设多核归属 + 分核任务规划**、**相对路径优先**。详见 [`docs/methodology.md`](docs/methodology.md)。
+v1.1 深化的工程纪律(均 MCU 无关):**固化场景**(把赛规/安全约束写进 manifest 常驻贯穿)、**单工作区多工程管理**(关键词→target 路由 + 同名异义登记 + 共享库版本登记)、**分级分布式文档**(三层按需下钻省上下文)、**自动进化学习**(代码改动→必同步文档矩阵)、**经验记忆不再犯**(本地 `.hecateflow/lessons/` 跨平台 record→recall→avoid→promote)、**事实来源二次确认**(用户/SDK/历史注释/既有代码都只是证据来源,"不可能出现"须复核后才采信)、**硬件映射头 + 参数头 + 极性单一真相源**(三组方向系数 + 开环辨识 + 禁藏 Kp 负号 + 闭环轴向对齐 + 数量级理智检查)、**硬件驱动代码级单一 owner**(面向对象式实例/API 管理,避免竞态和多头管理混乱)、**自动注入**(规则/skill 在各 CLI 被自动加载发现)、**clangd 配置管理**(初始化先问是否用 + 六条同步经验)、**IO 外设多核归属 + 分核任务规划**、**相对路径优先**。详见 [`docs/methodology.md`](docs/methodology.md)。
 
 ## Skill 一览 / The skills
 
@@ -52,11 +52,23 @@ cd HecateFlow
 pwsh -NoProfile -ExecutionPolicy Bypass -File ./install.ps1
 ```
 
+默认会同时把 Claude Code `PostToolUse` hook 写入 `~/.claude/settings.json`,在 `Write`/`Edit`/`MultiEdit` 后注入 `hf-auto-workflow` 提醒。若只想安装 skill、不改 Claude Code hook:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -SkipClaudeHook
+```
+
 **macOS / Linux / Git Bash:**
 ```sh
 git clone https://github.com/HecateFake/HecateFlow.git
 cd HecateFlow
 sh install.sh
+```
+
+跳过 Claude Code hook:
+
+```sh
+sh install.sh --skip-claude-hook
 ```
 
 安装后验证 / verify after install:
@@ -87,26 +99,39 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/audit-skill-package.ps1 
 
 ## 工程清单 / The manifest
 
-`.hecateflow/project.json` 是 HecateFlow 的交互记忆,记录 `workspace`(MCU/工具链/编码 + `scenario` 固化场景 + `lsp` 是否用 clangd)、`buildSystem`(类型 + 文件登记方式)、`targets[]`(各核职责/`layout` 非扁平布局/`headers` 硬件映射头与极性源/`ownedPeripherals` 独占外设/高危同名文件)、`docs`、`git`、`lessons`(本地经验记忆目录)、`autoInjection`(规则注入)、`paths.preferRelative`、`activeChecks`(含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`lessonsCapture`)等。schema 见 [`skills/hecateflow/references/manifest-schema.md`](skills/hecateflow/references/manifest-schema.md)。
+`.hecateflow/project.json` 是 HecateFlow 的交互记忆,记录 `workspace`(MCU/工具链/编码 + `scenario` 固化场景 + `lsp` 是否用 clangd)、`buildSystem`(类型 + 文件登记方式)、`targets[]`(各核职责/`layout` 非扁平布局/`headers` 硬件映射头与极性源/`ownedPeripherals` 独占外设/高危同名文件)、`docs`、`git`、`lessons`(本地经验记忆目录)、`autoInjection`(规则注入)、`paths.preferRelative`、`activeChecks`(含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`factConfirmation`/`lessonsCapture`)等。schema 见 [`skills/hecateflow/references/manifest-schema.md`](skills/hecateflow/references/manifest-schema.md)。
 
-## 可选:Claude Code 自动审查 hook / Optional auto-review hook
+## Claude Code 自动审查 hook / Auto-review hook
 
-让 `hf-auto-workflow` 在每次编辑后自动触发(opt-in,加到 `~/.claude/settings.json`):
+`install.ps1` / `install.sh` 默认会安装这个 hook。它不会直接修改代码,只在 Claude Code `Write`/`Edit`/`MultiEdit` 后给 Claude 注入上下文,要求立即运行或说明跳过 `hf-auto-workflow`。
 
 ```json
 {
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
-        "command": "echo '提醒: 运行 hf-auto-workflow 对刚编辑的源文件做核心 6 步 + 扩展检查(极性/相对路径/IO 归属/lessons)'"
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\<you>\\.claude\\skills\\hecateflow\\scripts\\claude-post-tool-use-auto-workflow.ps1"
+            ],
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
 }
 ```
 
-Codex 无 hook 机制,`hf-auto-workflow` 靠 skill 正文约定"编辑后立即自审"。
+Codex 无标准 hook 机制,`hf-auto-workflow` 靠 skill 正文约定"编辑后立即自审"。
 
 ## 跨平台说明 / Cross-platform
 

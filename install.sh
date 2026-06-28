@@ -4,9 +4,106 @@
 # 用法: sh install.sh   或   ./install.sh
 set -eu
 
+SKIP_CLAUDE_HOOK=0
+if [ "${1:-}" = "--skip-claude-hook" ]; then
+    SKIP_CLAUDE_HOOK=1
+fi
+
 REPO="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_SRC="$REPO/skills"
 TMPL_SRC="$REPO/templates"
+
+install_claude_hook() {
+    [ "$SKIP_CLAUDE_HOOK" -eq 0 ] || {
+        echo "[HecateFlow] Claude Code hook skipped"
+        return
+    }
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "[HecateFlow] WARN python3 not found; Claude Code hook not installed"
+        return
+    fi
+
+    settings="$HOME/.claude/settings.json"
+    hook_script="$HOME/.claude/skills/hecateflow/scripts/claude-post-tool-use-auto-workflow.sh"
+    mkdir -p "$HOME/.claude"
+    [ ! -f "$settings" ] || cp "$settings" "$settings.hecateflow-hook.bak"
+
+    python3 - "$settings" "$hook_script" <<'PY'
+import json
+import os
+import sys
+
+settings_path, hook_script = sys.argv[1], sys.argv[2]
+
+try:
+    with open(settings_path, "r", encoding="utf-8") as f:
+        settings = json.load(f)
+except FileNotFoundError:
+    settings = {}
+except json.JSONDecodeError:
+    raise SystemExit(f"[HecateFlow] ERROR invalid JSON: {settings_path}")
+
+if not isinstance(settings, dict):
+    settings = {}
+
+hooks_root = settings.setdefault("hooks", {})
+if not isinstance(hooks_root, dict):
+    settings["hooks"] = hooks_root = {}
+
+post = hooks_root.get("PostToolUse") or []
+if not isinstance(post, list):
+    post = []
+
+def is_hecateflow_hook(hook):
+    if not isinstance(hook, dict):
+        return False
+    parts = [str(hook.get("command") or "")]
+    args = hook.get("args") or []
+    if isinstance(args, list):
+        parts.extend(str(item) for item in args)
+    joined = " ".join(parts)
+    return (
+        "claude-post-tool-use-auto-workflow" in joined
+        or "hf-auto-workflow" in joined
+        or "HecateFlow" in joined
+    )
+
+clean = []
+for entry in post:
+    if not isinstance(entry, dict):
+        clean.append(entry)
+        continue
+    entry_hooks = entry.get("hooks") or []
+    if not isinstance(entry_hooks, list):
+        clean.append(entry)
+        continue
+    kept = [hook for hook in entry_hooks if not is_hecateflow_hook(hook)]
+    if kept:
+        cloned = dict(entry)
+        cloned["hooks"] = kept
+        clean.append(cloned)
+
+clean.append({
+    "matcher": "Write|Edit|MultiEdit",
+    "hooks": [{
+        "type": "command",
+        "command": "/bin/sh",
+        "args": [hook_script],
+        "timeout": 10,
+    }],
+})
+
+hooks_root["PostToolUse"] = clean
+
+with open(settings_path, "w", encoding="utf-8") as f:
+    json.dump(settings, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
+
+    chmod +x "$hook_script" 2>/dev/null || true
+    echo "[HecateFlow] Claude Code hook installed -> $settings"
+}
 
 for root in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
     mkdir -p "$root"
@@ -26,6 +123,8 @@ for root in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
 
     echo "[HecateFlow] installed -> $root"
 done
+
+install_claude_hook
 
 # frontmatter name 唯一性自查(仅本包内)
 names="$(grep -rhoE '^name:[[:space:]]*[A-Za-z0-9_-]+' "$SKILLS_SRC" 2>/dev/null | sed -E 's/^name:[[:space:]]*//' | sort)"

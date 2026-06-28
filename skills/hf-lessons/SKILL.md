@@ -6,6 +6,7 @@ description: >
   反复出现升级为规则,可机械检查的并入 auto-workflow。本地存储跨平台(Claude Code / Codex 都能读),
   区别于 harness 私有 memory。MCU 无关。触发:经验记录 / 踩坑 / 教训 / 不再犯 / lesson / 复盘 /
   被纠正 / 好做法沉淀 / 记住这个坑 / 下次别犯 / 经验沉淀 / 事故复盘 /
+  SDK 也可能错 / 用户也可能错 / 不可能出现 / 事实二次确认 / 权威偏差 /
   lessons learned / pitfall / postmortem / don't repeat / record mistake / recall lesson。
 license: MIT
 argument-hint: "[record|recall|promote|prune] [slug]"
@@ -56,6 +57,7 @@ metadata:
 - **症状写得检索不到**:"出了个 bug 修好了"这种 lesson 未来没人能凭关键词命中。**症状必须具体**(报什么错/什么现象),`trigger` 必须含未来会触发的中英关键词。
 - **同类坑反复新建文件**:同一机制的坑每次新建一条 → 经验碎片化。**先检索同类,有则更新该文件**(去重),不新建。
 - **存进 harness 私有 memory 当唯一副本**:绑死单平台,换工具/换机即丢,Codex 读不到 Claude 的 memory。**本地 lessons 为唯一权威副本**,harness memory 至多是可选镜像。
+- **权威偏差不记录**:这次靠"用户/SDK/provider 也可能错"才找到根因,却不把二次确认方法记下来 → 下次又会被"不可能出现"挡住搜索空间。凡是推翻用户结论、SDK 承诺、历史注释或 agent 先验的坑,都应记为可检索 lesson。
 
 ## 一、何时记录(record)
 
@@ -64,6 +66,7 @@ metadata:
 - **踩坑(pitfall)**:遇到非显而易见的失败——编译/链接报错、运行失控、屏幕乱码、行为不符预期,且根因有复用价值(机制级、换场景会再遇)。`type: pitfall`。
 - **被纠正(correction)**:用户纠正了你的做法(用错抽象、违反某约定、方向反了)。把"被纠正的点 + 正确做法"记下。`type: correction`。
 - **确认的好做法(good-practice)**:验证了一个有效模式(某重构手法、某调试切入点、某安全门控放置),值得下次复用。`type: good-practice`。
+- **事实来源被推翻(fallible-source)**:发现用户描述、SDK/provider 文档或实现、历史注释、既有代码、agent 先验中有任一项不可靠,且二次确认方法可复用。可记为 `type: pitfall` 或 `type: correction`,trigger 必含"不可能出现 / SDK 也可能错 / 二次确认 / 相关函数名"。
 
 判据:**这条经验下次相关编辑时若不想起来,会重新犯错或重新摸索吗?** 是 → 记;否(一次性/显而易见)→ 不记。
 
@@ -76,6 +79,7 @@ metadata:
 - **frontmatter**:`name`(=slug)、`type`(pitfall/correction/good-practice)、`trigger`(**何种编辑/操作前应想起本条,中英关键词**,检索靠它)、`target`(某 target ID 或 `all`)、`severity`(critical/high/medium)、`status`(active/superseded)、`created`(YYYY-MM-DD)。
 - **症状(怎么暴露的)**:具体到可被搜索命中的现象。
 - **根因(为什么会这样)**:第一性机制,不停在表象。
+- **证据与二次确认**:哪些来源说法被验证为真/假/未证实;若用户曾说"不可能",记录二次确认了哪些复现条件/观测证据;若 SDK/provider 有坑,记录读到的真实实现语义。
 - **如何避免(下次怎么不再犯)**:可执行规避动作 + **升级路径**(仅留 lesson / 升为 rule 段 / 并入 auto-workflow)。
 
 ### 索引 INDEX.md(模板 `../hecateflow/templates/lessons-index.md.tmpl`)
@@ -122,6 +126,7 @@ record → recall → avoid → promote
 - [ ] **trigger 含中英关键词**:frontmatter `trigger` 覆盖未来相关编辑会用到的措辞。
 - [ ] **根因到机制**:根因说清第一性机制,没停在"改一下就好了"的表象。
 - [ ] **规避可执行**:"如何避免"是具体动作(编辑前确认什么/改后跑什么),不是空泛原则。
+- [ ] **证据与二次确认写清**:用户/SDK/provider/历史注释/既有代码/agent 推断哪些被证实、哪些被推翻、哪些仍是假设,有"不可能出现"时记录二次确认动作。
 - [ ] **升级路径已判**:每条标明"仅 lesson / 升 rule / 并入 auto-workflow",反复/多 target 的已升级并登记。
 - [ ] **去重**:同类已有 lesson 时更新而非新建;无重复文件。
 - [ ] **失效已清**:不再成立的 lesson 已标 superseded 或删除,未留误导。
@@ -141,11 +146,12 @@ record → recall → avoid → promote
 - **同坑多文件**:"极性"相关经验散成三条 lesson,检索命中其一漏其二 → 改极性时只规避了部分。教训:**先检索后记录**,同机制更新单一文件。
 - **失效 lesson 误导**:某坑早已被重构根治,lesson 没删,新 agent 仍按它绕路做无用功甚至引入新问题。教训:代码演进时同步清理/标记失效 lesson(与 doc-discipline 同次提交校准同理)。
 - **只存 harness memory**:经验只写进 Claude 私有 memory,换到 Codex 后完全读不到,等于没记。教训:**本地 lessons 为唯一权威副本**,跨平台才是经验记忆的意义。
+- **不记权威偏差**:一次 bug 靠推翻"SDK 不会错/用户已经确认"才修好,但 lesson 只写最终补丁,没写事实二次确认链。下次遇到同类"不可能"描述仍会先入为主。教训:lesson 必须记录证据来源如何被验证。
 
 ## 平台差异
 
 - **存储位置统一**:`.hecateflow/lessons/` 在工作区内,Claude Code / Codex 用各自原生读写工具(Read/Write 或等价)操作 markdown,**无平台特异逻辑**——这正是选本地存储而非 harness memory 的原因。
-- **触发记录**:`activeChecks.lessonsCapture:true` 时,Claude Code 可挂 PostToolUse hook 在踩坑/被纠正后提示记录;Codex 端编辑后由 agent 自律调用本 skill。两端均由 `hf-auto-workflow` 统一编排(见该 skill 审查步骤)。
+- **触发记录**:`activeChecks.lessonsCapture:true` 时,Claude Code 通过安装器写入的 PostToolUse hook 在踩坑/被纠正后提示记录;Codex 端编辑后由 agent 自律调用本 skill。两端均由 `hf-auto-workflow` 统一编排(见该 skill 审查步骤)。
 - **升级为规则的注入**:升 rule 后的自动加载方式各 CLI 不同(Claude Code 靠 CLAUDE.md/skill description;OpenCode/Codex 靠 instructions 列表),详见 `../hecateflow/references/auto-injection.md`,本 skill 只负责"判定该升级",注入由该 reference 落地。
 - **可选导出 memory**:仅 Claude Code 有原生 memory 概念;Codex 无,直接以本地 lessons 为准。导出是 Claude 端的可选便捷,不影响跨平台权威性。
 
@@ -157,5 +163,5 @@ record → recall → avoid → promote
 - `hf-implement`(修 bug 收尾触发记录)、`hf-auto-workflow`(编辑前检索 + 编辑后记录,`activeChecks.lessonsCapture`)。
 - `hf-hw-mapping`/`hf-embedded-safety`(极性/数量级/IO 归属类 lesson 的"升级去向"常落在这两个 skill 引用的规则段)。
 - 升级注入:`../hecateflow/references/auto-injection.md`;同次提交纪律:`../references/git-discipline.md`。
-- manifest 字段:`lessons.dir` / `lessons.index` / `activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`lessons.dir` / `lessons.index` / `activeChecks.factConfirmation` / `activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。
 - 源工程经验记忆形态参考(只读出处):`D:\car\iarCode\core` 工作区的 harness memory(`iar-icf-ascii-only`、`core2-motor-runaway-protection` 等条目即 type/trigger + 症状/根因/如何避免 的实际写法)。

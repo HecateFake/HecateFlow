@@ -39,15 +39,17 @@ metadata:
 - **涉极性/增益却不标检查点**:模块碰执行器/传感器/闭环/增益数量级,设计卡必须标"极性数量级检查点"并引 `hf-hw-mapping`,提示上板辨识 + 闭环核查,不在设计期替用户假定极性。
 - **占独占 IO 外设不标归属**:涉 SPI 屏/总线/共享 ADC 的模块,切点必含外设归属门控(白名单 `#if`)+ 分核规划提示。
 - **硬件驱动无单一 owner**:同一硬件实例若会被多个模块调用,设计卡必须点名代码级 owner(用对象式实例负责 init/config/static state/update)和其它模块的访问方式(API/接口/注入绑定),不允许多个 `.c` 文件各管一套驱动状态制造竞态。
+- **把来源说法全当事实**:设计输入里的用户描述、SDK/provider 文档或历史注释都可能缺条件或有错;若出现"不可能出现"类断言,设计卡须列入"待二次确认",不得直接作为设计边界。
 - **计划文件/设计卡写绝对机器路径**:引用工程文件一律工作区相对路径(`config/configMotor.h`、`control/...`),不写 `<盘符>:\...`。
 
 ## 执行流程
 
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
-2. **复用调研**(优先级严格递减):① 本仓已有库/抽象(clamp/wrap/PID/低通/数学工具)→ ② 现成外部库 → ③ 才新建。重点找"为复用而设计却被手写绕过"的抽象。结论填进设计卡的复用表。
-3. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。若接口背后对应同一物理驱动实例,同时点名**代码级 owner**:谁以对象式实例负责 init/config/static state/update,其它模块只通过 owner API/接口/注入绑定访问,避免竞态和管理混乱。接口契约(单位/量纲/极性/返回语义/owner 边界)写头注释。详见 `../references/embedded-c-style.md` 嵌入式 OOP 段。
-4. **放置(非扁平,点 6)**:据 manifest `targets[].layout.subdirs` 决定新模块落哪个功能子目录(控制→`control/`、驱动→`sensor/comm/`、参数→`config/`);引脚从 `config/pinMap.h` 取、参数从 `configHeader` 取,不硬编码。新增子目录须同步构建 include 路径 + LSP `-I`(切点见步 5)。
-5. **切点清单**(用 `../hecateflow/templates/module-design.md.tmpl`),逐项列全:
+2. **事实来源与待确认假设**:把用户需求、SDK/provider 文档或实现、历史注释、既有代码分别列为已证实/待二次确认/未证实假设;遇"不可能出现"先要求用户二次确认复现条件或物理事实,并把未证实项写进设计卡,不当作边界。
+3. **复用调研**(优先级严格递减):① 本仓已有库/抽象(clamp/wrap/PID/低通/数学工具)→ ② 现成外部库 → ③ 才新建。重点找"为复用而设计却被手写绕过"的抽象。结论填进设计卡的复用表。
+4. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。若接口背后对应同一物理驱动实例,同时点名**代码级 owner**:谁以对象式实例负责 init/config/static state/update,其它模块只通过 owner API/接口/注入绑定访问,避免竞态和管理混乱。接口契约(单位/量纲/极性/返回语义/owner 边界)写头注释。详见 `../references/embedded-c-style.md` 嵌入式 OOP 段。
+5. **放置(非扁平,点 6)**:据 manifest `targets[].layout.subdirs` 决定新模块落哪个功能子目录(控制→`control/`、驱动→`sensor/comm/`、参数→`config/`);引脚从 `config/pinMap.h` 取、参数从 `configHeader` 取,不硬编码。新增子目录须同步构建 include 路径 + LSP `-I`(切点见步 6)。
+6. **切点清单**(用 `../hecateflow/templates/module-design.md.tmpl`),逐项列全:
    - 源文件登记(构建系统 + LSP,见 `hf-build-sync`;路径相对)。
    - 构建变体宏(若引入新模式 → 定义/调用/ISR 路由三处守卫对齐)。
    - ISR 路由 / 周期(若挂中断)。
@@ -55,19 +57,20 @@ metadata:
    - 共享数据 volatile(若跨 ISR/核)。
    - **极性 / 数量级**(若碰执行器/传感器/闭环/增益 → 见步 7)。
    - 文档同步(PROJECT.md 模块清单 + 边界)。
-6. **IO 外设 / 驱动 owner 检查(点 13/24)**:模块若占用单实例 IO 外设——核对 manifest `targets[].ownedPeripherals`:本 target 是否 owner?门控是否白名单 `#if`(非黑名单,防新增模式默认抢占)?**主动提示该外设多核归属与分核规划**(其它核如何让出)。模块若接管同一硬件驱动实例——设计卡必须写明代码级 owner 模块、owner 负责的 `init/config/static state/update`、其它模块访问方式(API/接口/注入绑定),并检查是否已有其它 `.c` 文件维护同一驱动状态而造成竞态。门控机制细节归 `hf-embedded-safety`,本步只在设计期标注切点。
-7. **极性 / 数量级检查点(点 11,引 `hf-hw-mapping`)**:模块若碰执行器命令、传感器反馈、闭环控制或增益/步长——设计卡标注:
+7. **IO 外设 / 驱动 owner 检查(点 13/24)**:模块若占用单实例 IO 外设——核对 manifest `targets[].ownedPeripherals`:本 target 是否 owner?门控是否白名单 `#if`(非黑名单,防新增模式默认抢占)?**主动提示该外设多核归属与分核规划**(其它核如何让出)。模块若接管同一硬件驱动实例——设计卡必须写明代码级 owner 模块、owner 负责的 `init/config/static state/update`、其它模块访问方式(API/接口/注入绑定),并检查是否已有其它 `.c` 文件维护同一驱动状态而造成竞态。门控机制细节归 `hf-embedded-safety`,本步只在设计期标注切点。
+8. **极性 / 数量级检查点(点 11,引 `hf-hw-mapping`)**:模块若碰执行器命令、传感器反馈、闭环控制或增益/步长——设计卡标注:
    - 涉及的方向系数在哪(`headers.polaritySource` 的 §极性段),**新增执行器/传感器须在该段加方向系数宏**(每路一个,占位待辨识),不藏 Kp、不散落 `.c`。
    - 提示"上板开环辨识 ±1 + 闭环须传感器正向=被控量正向(手动转动确认)"。
    - 增益作用于哪个量纲(不跨环照搬)、菜单步长须与范围/钳位同量级。
    - 细节方法论交 `hf-hw-mapping`,本步只把它列为必经检查点 + 生成提醒文案。
-8. **先仿真后上板判定**:模块是否含可在 PC 验证的算法/几何/协议?是 → 标注先用仿真工具(manifest `simulation.tools`)验证再上板。
-9. **安全预检**:调 `hf-embedded-safety` 视角过一遍(新模块有无并发/数值/外设/极性风险)。
-10. 产出设计卡 + 初始化实施计划文件(`../hecateflow/templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
+9. **先仿真后上板判定**:模块是否含可在 PC 验证的算法/几何/协议?是 → 标注先用仿真工具(manifest `simulation.tools`)验证再上板。
+10. **安全预检**:调 `hf-embedded-safety` 视角过一遍(新模块有无并发/数值/外设/极性风险)。
+11. 产出设计卡 + 初始化实施计划文件(`../hecateflow/templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
 
 ## PASS/FAIL 清单
 
 - [ ] 复用调研做过:已确认没有现成库可用才决定新写。
+- [ ] 事实来源与待确认假设已列:用户/SDK/provider/历史注释/既有代码未被无证据当事实;"不可能出现"类断言已标二次确认。
 - [ ] 接口是对象式(`xxxStruct`+Init/Update/Reset)、与调用方解耦、多实例隔离。
 - [ ] 放置遵 `layout.subdirs`,引脚/参数从 `config/` 取,不硬编码。
 - [ ] 切点清单覆盖全部类(源登记/宏/ISR/外设/volatile/极性数量级/文档),无遗漏。

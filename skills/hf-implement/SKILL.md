@@ -5,7 +5,8 @@ description: >
   新文件委派 hf-build-sync 登记,改动委派 hf-doc-discipline 同步 PROJECT.md,修 bug/被纠正时触发
   hf-lessons 记录"不再犯",路径用相对、维护计划文件进度,完成后删计划并按 git-discipline 收尾。
   触发:实现 / 写代码 / 改代码 / 进 build / 执行计划 / 修 bug 收尾 / 按计划落地 / 开始开发 /
-  新增功能实现 / 修改源码 / implement / build feature / execute plan / code changes / develop feature。
+  新增功能实现 / 修改源码 / 排查 bug / 不可能出现 / SDK 也可能错 / 事实二次确认 /
+  implement / build feature / execute plan / code changes / develop feature。
 license: MIT
 argument-hint: "[plan-or-target]"
 metadata:
@@ -31,10 +32,11 @@ metadata:
 
 1. 读 manifest + 计划文件,确认 target;不明确就先问。
 2. 编辑前扫 `.hecateflow/lessons/INDEX.md`;命中则按 lesson 规避。
-3. 每新增 `.c/.h` 或目录,立即执行 `hf-build-sync` 的登记清单,不能只写"见 hf-build-sync"。
-4. 每次编辑后执行 `hf-auto-workflow`;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版。
-5. 若改了模块清单/边界/参数/协议,直接同步 PROJECT.md,不能只写"见 hf-doc-discipline"。
-6. 结束时输出下方 `HecateFlow Check`,再提交/交付。
+3. 修 bug 前列"现象 / 已证实事实 / 未证实假设",用户与 SDK/厂商说法都需证据确认;"不可能出现"类断言先二次确认。
+4. 每新增 `.c/.h` 或目录,立即执行 `hf-build-sync` 的登记清单,不能只写"见 hf-build-sync"。
+5. 每次编辑后执行 `hf-auto-workflow`;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版。
+6. 若改了模块清单/边界/参数/协议,直接同步 PROJECT.md,不能只写"见 hf-doc-discipline"。
+7. 结束时输出下方 `HecateFlow Check`,再提交/交付。
 
 ```text
 HecateFlow Check:
@@ -61,6 +63,7 @@ HecateFlow Check:
 - **回退非本次改动**:`git status` 里 agent 本次没碰的极性/增益/模式宏改动,往往是用户辛苦辨识的结果或其它 agent 的并行工作——原样保留,禁 `git checkout` 擅自丢弃。
 - **踩了会复发的坑却不记**:修了非显而易见的 bug / 被用户纠正了做法,不写 lesson → 换个 agent 又踩(触发 `hf-lessons`)。
 - **写绝对机器路径**:源码 `#include`、构建配置、计划文件引用一律相对路径,不写 `<盘符>:\...`。
+- **把来源断言当事实**:用户描述、SDK/厂商承诺、历史注释、既有代码都可能错。修 bug 时遇到"这不可能出现""SDK 不会错"这类断言,先二次确认复现条件与证据,再读代码/SDK/日志验证;矛盾处标"未证实假设",不据此直接改。
 
 ## plan→build 工作流
 
@@ -73,13 +76,14 @@ HecateFlow Check:
 
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
 2. **编辑前检索 lessons(recall)**:按 target / 关键词扫 `.hecateflow/lessons/INDEX.md`,命中则读对应 lesson 规避已知坑(见 `hf-lessons`;不查 = 白记)。
-3. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
-4. **新增文件** → 执行 `hf-build-sync` 的登记清单:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。禁止只口头说"应登记"。
-5. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
-6. **改了模块清单/语义/参数/边界** → 执行 `hf-doc-discipline` 的同步动作,直接更新 PROJECT.md 或说明项目尚无 PROJECT.md(同次提交,见同步矩阵)。禁止只口头说"见文档纪律"。
-7. **修 bug / 被纠正 / 确认好做法 → 触发 `hf-lessons` 记录(record)**:机制级、会复发的经验写 `.hecateflow/lessons/<slug>.md` + 登记 INDEX,并判升级路径(仅 lesson / 升 rule / 并入 auto-workflow);`activeChecks.lessonsCapture:true` 时由 `hf-auto-workflow` 在踩坑后提示。一次性排查细节不记(避免流水账)。
-8. 勾选计划文件;阶段间不积压未审查代码。
-9. 全部完成:删计划文件 → Git 收尾(见下)。
+3. **修 bug 的事实门**:把用户描述、SDK/厂商文档、历史注释、代码现状分别列为"已证实事实 / 未证实假设 / 待用户二次确认"。若用户提出"理论上不可能出现",先请其二次确认复现条件/观测证据;同时读真实代码、SDK 源/文档、日志或寄存器路径找反证。未证实前不把任何来源结论当修复依据。
+4. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
+5. **新增文件** → 执行 `hf-build-sync` 的登记清单:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。禁止只口头说"应登记"。
+6. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
+7. **改了模块清单/语义/参数/边界** → 执行 `hf-doc-discipline` 的同步动作,直接更新 PROJECT.md 或说明项目尚无 PROJECT.md(同次提交,见同步矩阵)。禁止只口头说"见文档纪律"。
+8. **修 bug / 被纠正 / 确认好做法 → 触发 `hf-lessons` 记录(record)**:机制级、会复发的经验写 `.hecateflow/lessons/<slug>.md` + 登记 INDEX,并判升级路径(仅 lesson / 升 rule / 并入 auto-workflow);`activeChecks.lessonsCapture:true` 时由 `hf-auto-workflow` 在踩坑后提示。一次性排查细节不记(避免流水账)。
+9. 勾选计划文件;阶段间不积压未审查代码。
+10. 全部完成:删计划文件 → Git 收尾(见下)。
 
 ## Git 收尾(遵 `../references/git-discipline.md`)
 
@@ -93,6 +97,7 @@ HecateFlow Check:
 ## PASS/FAIL 清单
 
 - [ ] 编辑前已检索 lessons(命中则规避)。
+- [ ] 修 bug 时已完成事实门:用户/SDK/历史注释/既有代码的断言已按证据分级;"不可能出现"类说法已二次确认后才采信。
 - [ ] 每个新增源文件已登记构建系统 + LSP(`hf-build-sync`),路径相对。
 - [ ] 每次编辑后跑过 `hf-auto-workflow`,无未修的 CRITICAL/HIGH;极性/数量级/IO 已请用户确认。
 - [ ] 触发文档同步的改动已更新 PROJECT.md(`hf-doc-discipline`)。
@@ -115,6 +120,7 @@ HecateFlow Check:
 - `git add .` 把其他 agent/用户的工作区改动一并提交 → 污染提交、破坏并行协作。
 - **修好 bug 不记 lesson** → 同类坑(编码/ICF/极性)换会话又踩,白白浪费上次的排查。
 - 计划文件/`#include` 写绝对路径 → 换机/换人即断。
+- 轻信"SDK 不可能错"或"用户已经确定" → 把真实根因排除在搜索空间外;应把所有来源当证据而非事实,二次确认后再落修复。
 
 ## 平台差异
 
@@ -126,4 +132,4 @@ HecateFlow Check:
 - `../hecateflow/templates/integration-plan.md.tmpl`、`../references/embedded-c-style.md`、`../references/git-discipline.md`。
 - `hf-build-sync`、`hf-auto-workflow`、`hf-doc-discipline`、`hf-lessons`(修 bug 触发记录)。
 - `hf-design-module`(上游)、`hf-hw-mapping`(极性/数量级确认细节)。
-- manifest 字段:`planFile`/`git`/`lessons`/`activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。
+- manifest 字段:`planFile`/`git`/`lessons`/`activeChecks.factConfirmation`/`activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。

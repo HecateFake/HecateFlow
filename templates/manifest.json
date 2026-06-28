@@ -68,6 +68,7 @@
     "polarityMagnitude": true,
     "relativePaths": true,
     "ioOwnership": true,
+    "factConfirmation": true,
     "lessonsCapture": true
   },
   "git": {

@@ -37,14 +37,14 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `../templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、git 流程、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
 2. **建规则目录**:`.claude/rules/`,放分级文档(见 `../../references/tiered-docs.md`)与场景化检查规则;建 `README.md` 触发表。
 3. **建 instructions 列表**:若用 OpenCode,生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
-4. **可选 hook**:若 harness 支持(Claude Code `settings.json`),可加 `PostToolUse` 在编辑 `.c/.h` 后跑格式化/审查;登记到 `autoInjection.hooks`。无 hook 时退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(本仓即此模式,见 `hf-auto-workflow`)。
+4. **Claude Code hook**:HecateFlow 安装器默认把 `PostToolUse` hook 写入 `~/.claude/settings.json`,在 `Write`/`Edit`/`MultiEdit` 后注入 `hf-auto-workflow` 提醒;登记到 `autoInjection.hooks`。无 hook 的 CLI 退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(Codex 即此模式,见 `hf-auto-workflow`)。
 5. **校验注入闭环**:新会话能否在不手动 `@` 的情况下命中规则。验证法:让 agent 描述"编辑某 `.c` 前要做什么",应自动复述 auto-workflow 步骤。
 
 ## 反面教训
 
 - **只写 `.claude/rules/x.md` 不登记 `instructions[]`** → OpenCode 永远看不到该规则,Claude Code 也只在 CLAUDE.md 引用它时才看到。规则形同虚设。
 - **CLAUDE.md 改了不同步 AGENTS.md** → 换个 CLId 行为漂移,跨 agent 协作时一个 agent 守规则另一个不守。
-- **靠 hook 强约束但目标 harness 无 hook** → 规则落空。hook 是增强不是依赖;核心约束必须同时存在于"文档命令"层(任何 CLI 都读文档)。
+- **只靠 hook 强约束** → 换到无 hook 的 CLI 规则落空。hook 是增强不是唯一依赖;核心约束必须同时存在于"文档命令"层(任何 CLI 都读文档)。
 - **skill `description` 不含触发关键词** → 永不被自动发现,只能手动调。description 必须中英双语关键词覆盖典型用户措辞。
 
 ## 参考

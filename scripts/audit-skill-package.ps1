@@ -165,6 +165,8 @@ function Test-InstalledHashes($SourceSkills, $InstalledRoot) {
         'hf-embedded-safety\SKILL.md',
         'hf-hw-mapping\SKILL.md',
         'references\tiered-docs.md',
+        'hecateflow\scripts\claude-post-tool-use-auto-workflow.ps1',
+        'hecateflow\scripts\claude-post-tool-use-auto-workflow.sh',
         'hecateflow\references\codex-tools.md',
         'hecateflow\references\auto-injection.md',
         'hecateflow\references\manifest-schema.md'

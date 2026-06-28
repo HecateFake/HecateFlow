@@ -3,10 +3,11 @@ name: hf-auto-workflow
 description: >
   每次编辑源文件后立即自动跑的轻量审查门:核心 6 步(目标确认 → volatile 扫描 → ISR 安全 → 数值安全 →
   风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设/驱动 owner 归属、
-  lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属类显式请用户确认。是 HecateFlow 的
-  always-on 核心。Claude 端可挂 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
+  事实来源二次确认、lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属/事实类显式请用户确认。是 HecateFlow 的
+  always-on 核心。HecateFlow 安装器会给 Claude Code 自动安装 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
   auto workflow / post-edit review / 每次改完代码 / 改完帮我检查 / 轻量检查 / 极性提醒 /
-  相对路径检查 / IO 归属 / 驱动 owner / 硬件驱动归属 / lessons 记录 / after edit check / post tool review。
+  相对路径检查 / IO 归属 / 驱动 owner / 硬件驱动归属 / 不可能出现 / SDK 也可能错 / 事实二次确认 /
+  lessons 记录 / after edit check / post tool review。
 license: MIT
 argument-hint: "[changed-path]"
 metadata:
@@ -22,11 +23,11 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 ## 适用 / 不适用
 
 - 适用:刚 Write/Edit 了源文件之后。
-- 不适用:SDK/第三方库文件、文档/脚本/仿真 PC 代码(`tools/` 下)、提交时(编辑阶段已审,提交不重复)。
+- 不适用:SDK/第三方库文件、文档/脚本/仿真 PC 代码(`tools/` 下)、提交时(编辑阶段已审,提交不重复)。**但"不改 SDK"不等于"信任 SDK"**:若本次 bug 修复依赖 SDK/厂商行为判断,仍需读 SDK 源/文档/日志验证其真实语义。
 
 ## 触发
 
-- Claude Code:可配置为 PostToolUse hook(matcher `Write|Edit`),编辑后自动调起(配置片段见 README,opt-in)。
+- Claude Code:安装器默认写入 PostToolUse hook(matcher `Write|Edit|MultiEdit`),编辑后向 Claude 注入"立即运行/说明跳过 `hf-auto-workflow`"的上下文。
 - Codex:无 hook 机制 → 正文约定"每次 Write/Edit 后你必须立即自跑下列 6 步"。
 - 关键词:自动审查 / 编辑后检查 / post-edit review。
 
@@ -38,7 +39,8 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 2. 扫本次改动里的 ISR/共享变量/执行器输出/除零和钳位。
 3. 扫新增路径是否绝对路径,新增文件是否需要构建登记。
 4. 若触及极性/增益/IO 归属/硬件驱动 owner,明确请用户确认物理事实或 owner 边界,不自行假定。
-5. 输出一行摘要 + 下方简表。
+5. 若本次是 bug 修复或用户纠正,标出用户/SDK/注释/代码中哪些说法已证实,哪些仍是假设;遇"不可能出现"先二次确认。
+6. 输出一行摘要 + 下方简表。
 
 ```text
 HecateFlow Auto:
@@ -47,6 +49,7 @@ HecateFlow Auto:
 - critical/high:
 - medium:
 - physical confirmations:
+- fact confirmations:
 - doc/build follow-up:
 ```
 
@@ -74,7 +77,8 @@ HecateFlow Auto:
 6. **极性/数量级提醒-确认**(`activeChecks.polarityMagnitude`):本次改动**触及执行器/传感器/闭环极性或增益数量级**时(改 `*_DIR` 方向系数、新增驱动接线、整定 PID Kp、改菜单步长、上 yaw/航向闭环)→ **不静默改、不自行假定极性**,在回复里显式请用户核实物理事实:此 `*_DIR` 是本台硬件标定结果需开环辨识、闭环轴向须手动转车确认、增益作用量纲与步长须同量级。**红线就地拦截:发现极性翻转藏进 PID Kp 负号 → CRITICAL**(Kp 兼增益+极性,误改即正反馈跑飞),提示搬回 §极性段方向系数宏(细节委派 `hf-hw-mapping`,搬迁属改行为走 `hf-refactor`)。
 7. **相对路径检查**(`activeChecks.relativePaths`):本次新增/改动的**构建配置、include、LSP `-I`、脚本**中若出现**绝对机器路径**(`<盘符>:\...`、`/home/...` 等)→ HIGH,提示改相对(`$PROJ_DIR$\..`、`-I./src`、`./tools/...`);绝对路径入库换机即坏(见 `../references/git-discipline.md`、`../references/embedded-c-style.md` 路径纪律)。
 8. **IO 外设 / 驱动 owner 归属确认**(`activeChecks.ioOwnership`):本次改动**触及单实例 IO 外设**(SPI 屏/共享总线/共享 ADC/调试 UART 等)时 → 核对该外设在 manifest `targets[].ownedPeripherals[]` 的 `owner` 是否与当前 target 一致;**门控须白名单 `#if`(非黑名单)**否则新增模式默认抢占 → HIGH;跨核归属敏感(`io:true`)→ 提醒用户该外设归属并促分核任务规划。若本次改动**触及硬件驱动实例的 init/config/static state/update 或底层寄存器/引脚访问** → 检查同一驱动是否只有一个代码级 owner;发现多个 `.c` 各自维护驱动状态、重复 init/set、或绕过 owner API 直接访问底层 → HIGH,提示收敛到对象式 owner + API/接口/注入绑定,避免竞态和管理混乱(细节委派 `hf-hw-mapping`/`hf-embedded-safety`)。
-9. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
+9. **事实来源二次确认**(`activeChecks.factConfirmation`):本次改动若来自 bug 排查、用户纠正、"不可能出现"断言或 SDK/厂商行为假设 → 核对修复依据是否把用户描述、SDK/厂商文档/实现、历史注释、既有代码、agent 推断分为"已证实事实 / 未证实假设 / 待用户确认"。未证实断言直接驱动修复 → HIGH;需二次确认的,输出 `fact confirmations` 并请求用户确认复现条件/证据。
+10. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法 / 发现用户或 SDK/provider 断言需二次确认** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
 
 ## 严重级别与行动
 
@@ -91,6 +95,7 @@ HecateFlow Auto:
 - 有修:`✓ 审查完成,自动修复 N 个(CRITICAL×a, HIGH×b)`
 - 待决:`⚠ 审查完成,N 个 MEDIUM 待确认:...`
 - 待用户确认物理/归属事实:`⚠ 请确认:<极性/轴向/数量级/IO 归属 事实>`(扩展检查命中,不替用户假定)
+- 待事实二次确认:`⚠ 请二次确认:<复现条件/观测证据/SDK 行为假设>`(bug 排查命中,不把未证实断言当事实)
 - 结构化摘要:同时补 `HecateFlow Auto` 简表,方便 `hf-implement` 汇总。
 
 ## PASS/FAIL 清单
@@ -102,15 +107,16 @@ HecateFlow Auto:
 - [ ] 新增构建/include/LSP/脚本无绝对机器路径(相对路径)。
 - [ ] 触及单实例 IO 外设时已核对归属 + 门控为白名单 `#if`;跨核敏感已提醒分核规划。
 - [ ] 触及硬件驱动状态/初始化/底层访问时已核对代码级 owner;无重复驱动状态、重复 init/set、竞态访问或绕过 owner API。
+- [ ] 修 bug/被纠正/SDK 假设场景已做事实来源分级;"不可能出现"类断言已要求二次确认,未直接当事实落修复。
 - [ ] 本次踩坑/被纠正/好做法已提示按 `hf-lessons` 记录;编辑前命中的 lesson 规避动作已落实。
-- [ ] 未审查 SDK/第三方/仿真 PC 代码。
+- [ ] 未编辑 SDK/第三方/仿真 PC 代码;若依赖 SDK 行为,已读源/文档/证据验证其语义。
 - [ ] 输出了一行摘要。
 
 ## 不做的事
 
 - 不触发 planner/architect 类重流程(轻量门)。
 - 不在 `git commit` 时重复(编辑阶段已审)。
-- 不审 SDK/第三方库;不加 Doxygen 注释。
+- 不直接编辑 SDK/第三方库,也不做全量 SDK 审查;但本次修复依赖其行为时,必须读相关实现/文档/证据确认语义。不加 Doxygen 注释。
 
 ## 反面教训
 
@@ -120,13 +126,14 @@ HecateFlow Auto:
 - 改了 `*_DIR` 极性自行假定方向不提醒用户 → 在未标定映射上调正号 Kp,上板正反馈跑飞(极性属物理事实,agent 不能独断)。
 - 新增 `.clangd`/`.ewp` 顺手写了绝对盘符路径 → 换机/换人检出即坏,本该相对路径。
 - 同一驱动被多个模块各自管理状态 → setter/init 顺序和缓存状态互相覆盖,表现为"偶发不生效";编辑后应立即收敛为对象式 owner,避免竞态。
+- 轻信"用户说不可能"或"SDK/provider 不会错" → 未证实断言直接支配修复,真实根因被排除;编辑后应补事实来源分级和二次确认。
 - 编辑前不检索 lessons、编辑后也不记录 → 同类坑(GBK 编码、ICF ASCII)换会话又踩,"不再犯"沦为空话。
 
 ## 平台差异
 
-- 自动触发:Claude PostToolUse hook(harness 强制);Codex 靠 prompt 自律(无 hook)。
+- 自动触发:Claude PostToolUse hook 由 `install.ps1` / `install.sh` 默认安装;Codex 靠 prompt 自律(无 hook)。
 - 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载相关 skill,仅在多代理工具可用且用户明确授权时使用 `multi_agent_v1.spawn_agent`,否则主会话顺序执行。
-- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`lessonsCapture` 为 true 时,Claude 端可在 PostToolUse hook 里提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
+- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`factConfirmation`/`lessonsCapture` 为 true 时,Claude 端 PostToolUse hook 会提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考
 

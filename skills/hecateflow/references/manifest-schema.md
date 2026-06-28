@@ -131,6 +131,7 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
     "polarityMagnitude": true,   // 极性/数量级主动提醒确认(点 11)
     "relativePaths": true,       // 相对路径检查(点 12)
     "ioOwnership": true,         // IO 外设归属确认(点 7 & 13)
+    "factConfirmation": true,    // 事实来源二次确认(点 25):用户/SDK/历史注释/既有代码都按证据分级
     "lessonsCapture": true       // 踩坑/被纠正时触发 lessons 记录(点 7)
   },
 
@@ -159,6 +160,7 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
 | `targets[].ownedPeripherals[].io / planNote` | 7 & 13 IO 归属/分核 | hf-init-project | hf-embedded-safety / hf-design-module |
 | `lessons` | 3 & 7 自进化/不再犯 | hf-lessons | 全部(编辑前检索) |
 | `autoInjection` | 9 自动注入 | hf-init-workspace | hf-doc-discipline |
+| `activeChecks.factConfirmation` | 25 事实来源二次确认 | hf-init-workspace | hf-auto-workflow / hf-review / hf-implement |
 
 > 详细机制见 `auto-injection.md`(注入)、`../../references/git-discipline.md`(git)、`../../references/tiered-docs.md`(分级文档)。
 

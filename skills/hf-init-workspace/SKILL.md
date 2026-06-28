@@ -3,7 +3,7 @@ name: hf-init-workspace
 description: >
   交互式初始化一个嵌入式开发工作区:探测/询问 MCU 家族、架构、工具链、构建系统及其文件登记方式、
   源语言/编码、文档位置;采集固化工程应用场景(domain/约束/安全规则/禁止项),询问是否用 clangd,
-  搭建规则/skill 自动注入(入口文件 + instructions 列表 + 可选 hook),生成持久化工程清单
+  搭建规则/skill 自动注入(入口文件 + instructions 列表 + Claude Code hook),生成持久化工程清单
   .hecateflow/project.json + 开发纲领 workspace-guide。MCU 无关,一次性,路径默认相对。
   触发:初始化工作区 / 新建 hecateflow / 工程脚手架 / 第一次用 hecateflow / 固化场景 / 自动注入 /
   接入现有嵌入式工程 / 生成 project.json / 生成 AGENTS.md / 生成 CLAUDE.md / 询问 clangd /
@@ -62,7 +62,7 @@ metadata:
    - 是 → `clangd:true` + 追问 `configStyle`:优先 `compile_commands.json`(CMake/bear 自动生成,免手维护 `-I`)/ `.clangd-manual-I`(手维护 `-I`)/。`hf-build-sync` 据此决定是否成对维护 LSP 配置。
    - 否 → `clangd:false`,后续构建同步跳过所有 `-I`/`.clangd` 步骤。
 7. **Git**:提交格式、远端(多远端则全列,提交后须全推)、默认分支;`neverAddAll` 恒 true。
-8. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`lessonsCapture`)。
+8. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`factConfirmation`/`lessonsCapture`)。
 
 ### 第三阶段:生成与搭建(写)
 
@@ -72,7 +72,7 @@ metadata:
     - 写纲领入口 `CLAUDE.md` 与 `AGENTS.md`(同源镜像,含场景/target 识别/git 流程/相对路径纪律);登记 `mirrorPairs:[{a:"CLAUDE.md",b:"AGENTS.md"}]`。
     - 建 `.claude/rules/` 目录 + `README.md` 触发表(放场景化检查规则,分级见 `../references/tiered-docs.md`)。
     - 若用 OpenCode:生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
-    - 可选 hook:若 harness 支持(Claude Code `settings.json`),加 `PostToolUse` 在编辑 `.c/.h` 后触发 `hf-auto-workflow`;登记 `autoInjection.hooks`。无 hook 时退化为"纲领文档命令 agent 每次编辑后自律执行"。
+   - Claude Code hook:HecateFlow 安装器默认加 `PostToolUse` 在 `Write`/`Edit`/`MultiEdit` 后注入 `hf-auto-workflow` 提醒;登记 `autoInjection.hooks`。无 hook 时退化为"纲领文档命令 agent 每次编辑后自律执行"。
 12. **校验注入闭环**:验证新会话能否在不手动 `@` 的情况下命中规则(让 agent 复述"编辑某 `.c` 前要做什么",应自动复述 auto-workflow 步骤)。
 13. 提示下一步:对每个核/芯片跑 `hf-init-project`。
 
@@ -112,7 +112,7 @@ metadata:
 
 - AskUserQuestion:Claude 原生;Codex 用文字编号选项。
 - 探测:两端用 Glob/Grep。
-- 自动注入:Claude Code 靠 `CLAUDE.md` + skill `description` + 可选 `settings.json` hook;OpenCode 靠 `AGENTS.md` + `opencode.json` 的 `instructions[]`;Codex 靠 `AGENTS.md`。`AGENTS.md` 是跨 CLI 最大公约数(见 `../hecateflow/references/auto-injection.md`)。
+- 自动注入:Claude Code 靠 `CLAUDE.md` + skill `description` + 安装器写入的 `settings.json` hook;OpenCode 靠 `AGENTS.md` + `opencode.json` 的 `instructions[]`;Codex 靠 `AGENTS.md`。`AGENTS.md` 是跨 CLI 最大公约数(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考
 

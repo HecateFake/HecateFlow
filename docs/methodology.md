@@ -167,6 +167,14 @@ agent 不会读它没被注入的规则。源工程靠三类通道保证规则/s
 
 → 落地:`hf-hw-mapping`(代码级驱动 owner 规则)+ `hf-design-module`(设计卡强制写 owner/访问方式)+ `hf-auto-workflow`/`hf-review`(审查多头状态管理与竞态)+ `hf-init-project`/`PROJECT.md` 模板(新 target 留 owner 清单)。
 
+### 25. 所有来源都可错:用户 / SDK / 既有代码都要证据确认 / Treat every source as fallible
+
+Bug 排查时,用户描述、SDK/厂商文档与实现、既有注释、历史代码、agent 先验都只是**证据来源**,不是绝对事实。尤其当某个说法是"这不可能出现""SDK 不会这样""用户已经确定就是 X"时,必须进入二次确认:让用户复述复现条件/观测证据,同时亲自读相关代码、SDK 实现/文档、日志、寄存器路径或硬件现象。若说法与代码现状或实测矛盾,先标为"未证实假设",不得当成事实落修复。二次确认不是质疑用户,而是防止权威偏差把真实 bug 排除在外。
+
+源工程案例:整机卡死最初看似不可能由 SDK 中断封装导致,但真实根因是 SDK `interrupt_global_disable/enable` 的全局计数语义与 ISR/前后台临界区交错后漂移,最终让中断永久关闭;若默认"SDK 一定正确"会把真正根因排除。反过来,用户的现场描述也可能少了条件或把现象归因错,agent 不能把用户结论直接当成可提交事实。
+
+→ 落地:`hecateflow` 注入"事实来源可错"红线;`hf-implement` 修 bug 前列假设与证据,对"不可能"结论二次确认;`hf-review` 审查事实来源/假设链;`hf-embedded-safety` 读 SDK/驱动真实语义而非凭厂商名或直觉;`hf-lessons` 把"权威偏差/二次确认"类坑记录为可检索 lesson。
+
 ---
 
 ## 三、持久化交互记忆 / The persistent manifest
