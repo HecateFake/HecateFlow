@@ -32,6 +32,7 @@ install_claude_hook() {
     python3 - "$settings" "$hook_script" <<'PY'
 import json
 import os
+import shlex
 import sys
 
 settings_path, hook_script = sys.argv[1], sys.argv[2]
@@ -58,10 +59,14 @@ if not isinstance(post, list):
 def is_hecateflow_hook(hook):
     if not isinstance(hook, dict):
         return False
-    parts = [str(hook.get("command") or "")]
+    command = str(hook.get("command") or "")
+    parts = [command]
     args = hook.get("args") or []
     if isinstance(args, list):
-        parts.extend(str(item) for item in args)
+        for item in args:
+            if not isinstance(item, str) and ("powershell" in command or command.endswith("/bin/sh")):
+                return True
+            parts.append(str(item))
     joined = " ".join(parts)
     return (
         "claude-post-tool-use-auto-workflow" in joined
@@ -88,8 +93,7 @@ clean.append({
     "matcher": "Write|Edit|MultiEdit",
     "hooks": [{
         "type": "command",
-        "command": "/bin/sh",
-        "args": [hook_script],
+        "command": "/bin/sh " + shlex.quote(hook_script),
         "timeout": 10,
     }],
 })

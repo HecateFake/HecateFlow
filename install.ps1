@@ -49,8 +49,19 @@ function Test-HecateFlowHook($Hook) {
 
     $parts = @()
     if ($Hook -is [System.Collections.IDictionary]) {
-        if ($Hook.Contains('command')) { $parts += [string]$Hook['command'] }
-        if ($Hook.Contains('args')) { $parts += @($Hook['args'] | ForEach-Object { [string]$_ }) }
+        $command = ''
+        if ($Hook.Contains('command')) {
+            $command = [string]$Hook['command']
+            $parts += $command
+        }
+        if ($Hook.Contains('args')) {
+            foreach ($arg in @($Hook['args'])) {
+                if ($arg -isnot [string] -and $command -match '(^|\\|/)powershell(\.exe)?($|\s)') {
+                    return $true
+                }
+                $parts += [string]$arg
+            }
+        }
     }
 
     $joined = ($parts -join ' ')
@@ -106,13 +117,13 @@ function Install-ClaudeHook {
         }
     }
 
+    $hookCommand = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + $HookScript + '"'
     $hookEntry = [ordered]@{
         matcher = 'Write|Edit|MultiEdit'
         hooks = @(
             [ordered]@{
                 type = 'command'
-                command = 'powershell.exe'
-                args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $HookScript)
+                command = $hookCommand
                 timeout = 10
             }
         )

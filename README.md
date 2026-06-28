@@ -114,14 +114,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/audit-skill-package.ps1 
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe",
-            "args": [
-              "-NoProfile",
-              "-ExecutionPolicy",
-              "Bypass",
-              "-File",
-              "C:\\Users\\<you>\\.claude\\skills\\hecateflow\\scripts\\claude-post-tool-use-auto-workflow.ps1"
-            ],
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\<you>\\.claude\\skills\\hecateflow\\scripts\\claude-post-tool-use-auto-workflow.ps1\"",
             "timeout": 10
           }
         ]
