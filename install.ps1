@@ -1,12 +1,14 @@
 # HecateFlow installer (Windows / PowerShell)
-# 把 skills/ 安装到 Claude Code / Codex / Reasonix / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
+# 把 skills/ 安装到 Claude Code / Reasonix(.agents) / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
+# Codex Desktop 会同时索引 ~/.codex/skills 与 ~/.agents/skills;默认只通过 ~/.agents/skills 提供 HecateFlow,避免重复显示。
 # 用法: pwsh -File install.ps1   或   ./install.ps1
 
 param(
     [switch]$SkipClaudeHook,
     [switch]$SkipReasonix,
     [switch]$SkipQoder,
-    [switch]$SkipQoderHook
+    [switch]$SkipQoderHook,
+    [switch]$InstallCodex
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,9 +17,12 @@ $skillsSrc = Join-Path $repo "skills"
 $tmplSrc   = Join-Path $repo "templates"
 
 $targets = @(
-    (Join-Path $env:USERPROFILE ".claude\skills"),
-    (Join-Path $env:USERPROFILE ".codex\skills")
+    (Join-Path $env:USERPROFILE ".claude\skills")
 )
+$codexRoot = Join-Path $env:USERPROFILE ".codex\skills"
+if ($InstallCodex) {
+    $targets += $codexRoot
+}
 $reasonixRoot = Join-Path $env:USERPROFILE ".agents\skills"
 if (-not $SkipReasonix) {
     $targets += $reasonixRoot
@@ -307,6 +312,66 @@ function Install-ReasonixConfig {
     Write-Output "[HecateFlow] Reasonix skills path registered -> $configPath"
 }
 
+function Test-DirectoryMatchesSource {
+    param(
+        [string]$Source,
+        [string]$Destination
+    )
+
+    if (-not (Test-Path -LiteralPath $Source) -or -not (Test-Path -LiteralPath $Destination)) {
+        return $false
+    }
+
+    $srcFiles = @(Get-ChildItem -LiteralPath $Source -Recurse -File | ForEach-Object {
+        $_.FullName.Substring($Source.Length + 1)
+    } | Sort-Object)
+    $dstFiles = @(Get-ChildItem -LiteralPath $Destination -Recurse -File | ForEach-Object {
+        $_.FullName.Substring($Destination.Length + 1)
+    } | Sort-Object)
+
+    if ($srcFiles.Count -ne $dstFiles.Count) { return $false }
+    for ($i = 0; $i -lt $srcFiles.Count; $i++) {
+        if ($srcFiles[$i] -ne $dstFiles[$i]) { return $false }
+        $srcHash = (Get-FileHash -LiteralPath (Join-Path $Source $srcFiles[$i]) -Algorithm SHA256).Hash
+        $dstHash = (Get-FileHash -LiteralPath (Join-Path $Destination $dstFiles[$i]) -Algorithm SHA256).Hash
+        if ($srcHash -ne $dstHash) { return $false }
+    }
+
+    return $true
+}
+
+function Clear-CodexDuplicateInstall {
+    param([string]$Root)
+
+    if (-not (Test-Path -LiteralPath $Root)) {
+        Write-Output "[HecateFlow] Codex install cleanup skipped: $Root not found"
+        return
+    }
+
+    Get-ChildItem -LiteralPath $skillsSrc -Directory |
+        Where-Object { $_.Name -eq 'hecateflow' -or $_.Name -like 'hf-*' } |
+        ForEach-Object {
+            $dest = Join-Path $Root $_.Name
+            if (Test-Path -LiteralPath $dest) {
+                Remove-Item -LiteralPath $dest -Recurse -Force
+                Write-Output "[HecateFlow] removed duplicate Codex skill -> $dest"
+            }
+        }
+
+    $srcReferences = Join-Path $skillsSrc 'references'
+    $dstReferences = Join-Path $Root 'references'
+    if (Test-Path -LiteralPath $dstReferences) {
+        if (Test-DirectoryMatchesSource $srcReferences $dstReferences) {
+            Remove-Item -LiteralPath $dstReferences -Recurse -Force
+            Write-Output "[HecateFlow] removed duplicate Codex references -> $dstReferences"
+        } else {
+            Write-Warning "[HecateFlow] kept $dstReferences because it does not exactly match this package's skills\references"
+        }
+    }
+
+    Write-Output "[HecateFlow] Codex uses ~/.agents/skills by default; use -InstallCodex only for legacy Codex-only installs"
+}
+
 foreach ($root in $targets) {
     New-Item -ItemType Directory -Force -Path $root | Out-Null
 
@@ -326,6 +391,10 @@ foreach ($root in $targets) {
     Copy-Item -Recurse -Force $tmplSrc $tmplDest
 
     Write-Output "[HecateFlow] installed -> $root"
+}
+
+if (-not $InstallCodex) {
+    Clear-CodexDuplicateInstall $codexRoot
 }
 
 if (-not $SkipReasonix) {

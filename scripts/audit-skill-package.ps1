@@ -1,7 +1,6 @@
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [string[]]$InstalledRoots = @(
-        (Join-Path $env:USERPROFILE '.codex\skills'),
         (Join-Path $env:USERPROFILE '.claude\skills'),
         (Join-Path $env:USERPROFILE '.agents\skills')
     ),
@@ -607,6 +606,36 @@ function Test-QoderHookConfig {
     }
 }
 
+function Test-NoDuplicateCodexAgentsInstall {
+    param([string]$SourceSkills)
+
+    $codexRoot = Join-Path $env:USERPROFILE '.codex\skills'
+    $agentsRoot = Join-Path $env:USERPROFILE '.agents\skills'
+    if (-not (Test-Path -LiteralPath $codexRoot) -or -not (Test-Path -LiteralPath $agentsRoot)) {
+        return
+    }
+
+    $skillNames = Get-ChildItem -LiteralPath $SourceSkills -Directory |
+        Where-Object {
+            ($_.Name -eq 'hecateflow' -or $_.Name -like 'hf-*') -and
+            (Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md'))
+        } |
+        Select-Object -ExpandProperty Name
+
+    $duplicates = @()
+    foreach ($name in $skillNames) {
+        if ((Test-Path -LiteralPath (Join-Path $codexRoot $name)) -and
+            (Test-Path -LiteralPath (Join-Path $agentsRoot $name))) {
+            $duplicates += $name
+        }
+    }
+
+    if ($duplicates) {
+        $list = ($duplicates | Sort-Object) -join ', '
+        Fail "Duplicate HecateFlow install detected in .codex\skills and .agents\skills: $list. Default install should keep HecateFlow in .agents\skills only; run install.ps1 without -InstallCodex to clean .codex duplicates."
+    }
+}
+
 $skillsRoot = Join-Path $RepoRoot 'skills'
 $manifestTemplate = Join-Path $RepoRoot 'templates\manifest.json'
 
@@ -620,6 +649,8 @@ Test-OrchestrationContractCoverage $RepoRoot
 Write-Output 'Source package checks OK'
 
 if (-not $SkipInstalled) {
+    Test-NoDuplicateCodexAgentsInstall $skillsRoot
+
     $rootsToCheck = @($InstalledRoots)
     if (-not $PSBoundParameters.ContainsKey('InstalledRoots')) {
         $rootsToCheck += @(Get-QoderInstalledRoots)

@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 # HecateFlow installer (POSIX / macOS / Linux / Git Bash)
-# 把 skills/ 安装到 Claude Code / Codex / Reasonix / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
+# 把 skills/ 安装到 Claude Code / Reasonix(.agents) / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
+# Codex Desktop 会同时索引 ~/.codex/skills 与 ~/.agents/skills;默认只通过 ~/.agents/skills 提供 HecateFlow,避免重复显示。
 # 用法: sh install.sh   或   ./install.sh
 set -eu
 
@@ -8,12 +9,14 @@ SKIP_CLAUDE_HOOK=0
 SKIP_REASONIX=0
 SKIP_QODER=0
 SKIP_QODER_HOOK=0
+INSTALL_CODEX=0
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --skip-claude-hook) SKIP_CLAUDE_HOOK=1 ;;
         --skip-reasonix) SKIP_REASONIX=1 ;;
         --skip-qoder) SKIP_QODER=1 ;;
         --skip-qoder-hook) SKIP_QODER_HOOK=1 ;;
+        --install-codex) INSTALL_CODEX=1 ;;
         *)
             echo "[HecateFlow] ERROR unknown option: $1" >&2
             exit 1
@@ -141,6 +144,34 @@ install_skills_root() {
     cp -R "$TMPL_SRC" "$root/hecateflow/templates"
 
     echo "[HecateFlow] installed -> $root"
+}
+
+remove_codex_duplicate_install() {
+    root="$HOME/.codex/skills"
+    if [ ! -d "$root" ]; then
+        echo "[HecateFlow] Codex install cleanup skipped: $root not found"
+        return
+    fi
+
+    for d in "$SKILLS_SRC"/hecateflow "$SKILLS_SRC"/hf-*; do
+        [ -d "$d" ] || continue
+        name="$(basename "$d")"
+        if [ -d "$root/$name" ]; then
+            rm -rf "$root/$name"
+            echo "[HecateFlow] removed duplicate Codex skill -> $root/$name"
+        fi
+    done
+
+    if [ -d "$root/references" ]; then
+        if diff -qr "$SKILLS_SRC/references" "$root/references" >/dev/null 2>&1; then
+            rm -rf "$root/references"
+            echo "[HecateFlow] removed duplicate Codex references -> $root/references"
+        else
+            echo "[HecateFlow] WARN kept $root/references because it does not exactly match this package's shared references"
+        fi
+    fi
+
+    echo "[HecateFlow] Codex uses ~/.agents/skills by default; use --install-codex only for legacy Codex-only installs"
 }
 
 qoder_root_initialized() {
@@ -324,7 +355,11 @@ PY
 }
 
 install_skills_root "$HOME/.claude/skills"
-install_skills_root "$HOME/.codex/skills"
+if [ "$INSTALL_CODEX" -eq 1 ]; then
+    install_skills_root "$HOME/.codex/skills"
+else
+    remove_codex_duplicate_install
+fi
 if [ "$SKIP_REASONIX" -eq 0 ]; then
     install_skills_root "$HOME/.agents/skills"
 fi
