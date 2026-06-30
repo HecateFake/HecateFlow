@@ -75,9 +75,11 @@ HecateFlow Route:
 5. **自主性优先多模型编排(点 26)**:所有子 skill 继承 `references/orchestration-contract.md`。先自主求证,能从代码/manifest/docs/diff/命令发现的事实不问用户;L1+ 自动主动派发只读子代理查证据;L2/L3 高风险必须复审子代理查证据/矛盾/过度推断后,主 agent 亲验再裁决;派发前清理完成代理、分批派发并防止占满并发上限;写入 worker 仅在用户已明确要求实现/修改/落地/应用补丁、方案完整、文件范围互斥且边界清楚后使用,且不得提交/推送。
 6. **Git 纪律 + 确认门**:提交格式见 manifest `git.commitFormat`;只显式 add 本次编辑文件,**禁止 `git add .`**;禁止自动提交/自动推送。完成实现和验证后只报告摘要、验证结果、建议提交说明和待暂存文件;等待用户明确确认后才进入 Git 写流程。细则见 `../references/git-discipline.md` 与 `references/orchestration-contract.md`。
 7. **相对路径(点 12,横切)**:目标工程的构建配置(`$PROJ_DIR$\..`)/include/LSP `-I`/脚本一律**优先相对路径**,绝对机器路径(`<盘符>:\...`)入库换机即坏(`paths.preferRelative`)。
-8. **极性/IO/驱动 owner 主动确认(点 11/13/24)**:触及执行器/传感器/闭环极性、增益数量级、单实例 IO 外设归属或同一硬件驱动代码级 owner 时,**主动提醒用户并请确认物理事实/分核规划/owner 边界,不自行假定极性或多头管理驱动**(细节 `hf-hw-mapping`)。
-9. **经验不再犯(点 7)**:相关编辑前先检索 `.hecateflow/lessons/INDEX.md` 命中规避;踩坑/被纠正后记 lesson(`hf-lessons`)。
-10. **交互自定义**:每个 skill 读 manifest 做默认值,只问缺失项,用完写回(读-改-写 + 校验,各 agent 只改自己的 `targets[]` 项降低写竞争)。
+8. **文件分割与三层封装(点 27)**:复杂功能按硬件底层 / 硬件顶层 / 软件实现分开;自写业务 `.c/.h` 超过 650 行先评估分文件,超过 1000 行默认拆分或封装管理。vendor/generated/table 或用户明确确认的特殊长文件可例外但须记录理由;小于 650 行但高频复用的模块可提前封为公共库/公共头。
+9. **通信/共享快照/参数持久化安全(点 28/30)**:半双工/共享总线优先唯一 master + request-response + timeout + valid frame;通信 ISR 只收字节/入缓冲并由前台限额解析;跨核/跨 ISR 快照用 `magic`/`seq`/freshness gate,失链不消费旧命令;参数持久化用 `magic/version/payloadBytes/CRC`,先 load defaults,CRC/magic 错不自动覆盖,flash 写入不进热路径。
+10. **极性/IO/驱动 owner 主动确认(点 11/13/24)**:触及执行器/传感器/闭环极性、增益数量级、单实例 IO 外设归属或同一硬件驱动代码级 owner 时,**主动提醒用户并请确认物理事实/分核规划/owner 边界,不自行假定极性或多头管理驱动**(细节 `hf-hw-mapping`)。
+11. **经验不再犯(点 7)**:相关编辑前先检索 `.hecateflow/lessons/INDEX.md` 命中规避;踩坑/被纠正后记 lesson(`hf-lessons`)。
+12. **交互自定义**:每个 skill 读 manifest 做默认值,只问缺失项,用完写回(读-改-写 + 校验,各 agent 只改自己的 `targets[]` 项降低写竞争)。
 
 ## 路由门(任一不满足先补)
 

@@ -34,10 +34,11 @@ metadata:
 2. 按编排契约自动调研并吸收设计卡里的只读调研/复审结论;高风险结论主 agent 亲验后再写。
 3. 编辑前扫 `.hecateflow/lessons/INDEX.md`;命中则按 lesson 规避。
 4. 修 bug 前列"现象 / 已证实事实 / 未证实假设",用户与 SDK/厂商说法都需证据确认;"不可能出现"类断言先二次确认。
-5. 每新增 `.c/.h` 或目录,立即执行 `hf-build-sync` 的登记清单,不能只写"见 hf-build-sync"。
-6. 每次编辑后执行 `hf-auto-workflow`;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版。
-7. 若改了模块清单/边界/参数/协议,直接同步 PROJECT.md,不能只写"见 hf-doc-discipline"。
-8. 结束时输出下方 `HecateFlow Check` + Git 建议;等待用户确认后才 stage/commit/push。
+5. 写代码前检查目标自写文件行数:>650 行先做分文件评估;>1000 行默认先拆层/拆模块,特殊长文件需用户确认例外。
+6. 每新增 `.c/.h` 或目录,立即执行 `hf-build-sync` 的登记清单,不能只写"见 hf-build-sync"。
+7. 每次编辑后执行 `hf-auto-workflow`;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版。
+8. 若改了模块清单/边界/参数/协议,直接同步 PROJECT.md,不能只写"见 hf-doc-discipline"。
+9. 结束时输出下方 `HecateFlow Check` + Git 建议;等待用户确认后才 stage/commit/push。
 
 ```text
 HecateFlow Check:
@@ -61,6 +62,8 @@ HecateFlow Check:
 
 - **攒一堆编辑最后统一审查**:CRITICAL 漏网且难定位。每次 Write/Edit 后立即跑 `hf-auto-workflow`。
 - **新文件忘登记构建系统**:自以为实现了,链接期 `undefined reference` 才发现(委派 `hf-build-sync`)。
+- **继续把复杂功能塞进大文件**:自写业务文件超过 650 行先评估分文件;超过 1000 行默认拆成硬件底层/硬件顶层/软件实现或其它清晰模块。vendor/generated/table 可例外;自写特殊长文件只有用户明确确认并记录理由后才可保留不拆。
+- **该封库的复用点留在私有文件里**:不足 650 行但后续会高频复用的 PID、滤波、协议解析、数学工具、设备 facade,应考虑单独封成公共库或公共头,不要等复制扩散后再补救。
 - **`git add .`**:把其它 agent/用户的工作区改动一锅端,污染提交、破坏并行协作。只显式 add 本次编辑文件(见 `../references/git-discipline.md`)。
 - **回退非本次改动**:`git status` 里 agent 本次没碰的极性/增益/模式宏改动,往往是用户辛苦辨识的结果或其它 agent 的并行工作——原样保留,禁 `git checkout` 擅自丢弃。
 - **踩了会复发的坑却不记**:修了非显而易见的 bug / 被用户纠正了做法,不写 lesson → 换个 agent 又踩(触发 `hf-lessons`)。
@@ -81,14 +84,15 @@ HecateFlow Check:
 1. 锁定 target(读 manifest;高危同名文件先公告 `目标:<target>/<file>(<语义>)`)。
 2. **编辑前检索 lessons(recall)**:按 target / 关键词扫 `.hecateflow/lessons/INDEX.md`,命中则读对应 lesson 规避已知坑(见 `hf-lessons`;不查 = 白记)。
 3. **修 bug 的事实门**:把用户描述、SDK/厂商文档、历史注释、代码现状分别列为"已证实事实 / 未证实假设 / 待用户二次确认"。若用户提出"理论上不可能出现",先请其二次确认复现条件/观测证据;同时读真实代码、SDK 源/文档、日志或寄存器路径找反证。未证实前不把任何来源结论当修复依据。
-4. **自主性编排门(点 26)**:读计划文件的协作分档,缺失则主 agent 自动分档。A0 先自主求证;L1+ 自动主动派发只读调研;L2/L3 的子代理结论须经过复审链并由主 agent grep/读码亲验。若使用实施 worker,必须限定互斥文件范围、接口/行为预期、验证方式和禁止事项。
-5. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
-5. **新增文件** → 执行 `hf-build-sync` 的登记清单:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。禁止只口头说"应登记"。
-6. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
-7. **改了模块清单/语义/参数/边界** → 执行 `hf-doc-discipline` 的同步动作,直接更新 PROJECT.md 或说明项目尚无 PROJECT.md(同次提交,见同步矩阵)。禁止只口头说"见文档纪律"。
-8. **修 bug / 被纠正 / 确认好做法 → 触发 `hf-lessons` 记录(record)**:机制级、会复发的经验写 `.hecateflow/lessons/<slug>.md` + 登记 INDEX,并判升级路径(仅 lesson / 升 rule / 并入 auto-workflow);`activeChecks.lessonsCapture:true` 时由 `hf-auto-workflow` 在踩坑后提示。一次性排查细节不记(避免流水账)。
-9. 勾选计划文件;阶段间不积压未审查代码。
-10. 全部完成:删计划文件 → 输出 Git 建议(见下);未经用户确认不 stage/commit/push。
+4. **自主性编排门(点 26)**:读计划文件的协作分档,缺失则主 agent 自动分档。A0 先自主求证;L1+ 自动主动派发只读调研;L2/L3 的子代理结论须经过复审链并由主 agent grep/读码亲验。复审若 FAIL,先修可证问题再重派复审,直到当前 change set PASS 或只剩 A3 用户确认/物理验证/平台限制。若使用实施 worker,必须限定互斥文件范围、接口/行为预期、验证方式和禁止事项。
+5. **文件分层/行数门**:按设计卡执行硬件底层/硬件顶层/软件实现分文件;缺失设计卡时本地补判。编辑目标自写 `.c/.h` 前统计行数:>650 行写明继续编辑还是拆分的理由;>1000 行默认先行为保持拆分或新建模块承接新增逻辑。若属于 vendor/generated/register map/buffer table 或用户明确确认的特殊长文件例外,记录例外理由与后续增长边界。
+6. 按计划写/改源码,遵循 `../references/embedded-c-style.md`;**`#include` 用相对头路径,对应目录须进构建 include 搜索路径 + LSP `-I`**(路径纪律,见 `../references/git-discipline.md` / `hf-build-sync`)。
+7. **新增文件** → 执行 `hf-build-sync` 的登记清单:登记进构建系统 + LSP(漏登 = 链接期 undefined);工程/LSP 路径用相对(`$PROJ_DIR$\..` 类)。禁止只口头说"应登记"。
+8. **每次 Write/Edit 后** → 触发 `hf-auto-workflow` 的审查,CRITICAL/HIGH 立即修;Codex 无 hook 时,最终交付前必须补跑一次本次变更聚合版;涉极性/数量级/IO 归属时按其提醒请用户确认物理事实。
+9. **改了模块清单/语义/参数/边界** → 执行 `hf-doc-discipline` 的同步动作,直接更新 PROJECT.md 或说明项目尚无 PROJECT.md(同次提交,见同步矩阵)。禁止只口头说"见文档纪律"。
+10. **修 bug / 被纠正 / 确认好做法 → 触发 `hf-lessons` 记录(record)**:机制级、会复发的经验写 `.hecateflow/lessons/<slug>.md` + 登记 INDEX,并判升级路径(仅 lesson / 升 rule / 并入 auto-workflow);`activeChecks.lessonsCapture:true` 时由 `hf-auto-workflow` 在踩坑后提示。一次性排查细节不记(避免流水账)。
+11. 勾选计划文件;阶段间不积压未审查代码。
+12. 全部完成:删计划文件 → 输出 Git 建议(见下);未经用户确认不 stage/commit/push。
 
 ## Git 收尾(遵 `../references/git-discipline.md` + Git 确认门)
 
@@ -104,6 +108,10 @@ HecateFlow Check:
 - [ ] 编辑前已检索 lessons(命中则规避)。
 - [ ] 修 bug 时已完成事实门:用户/SDK/历史注释/既有代码的断言已按证据分级;"不可能出现"类说法已二次确认后才采信。
 - [ ] 协作分档已执行:L1+ 吸收只读调研,L2/L3 有复审链 + 主 agent 亲验;worker 若使用,范围互斥且无 Git 权限。
+- [ ] 复审迭代闭环已执行:FAIL/CRITICAL/HIGH/MEDIUM 覆盖缺口已修复并重新复审,当前 change set PASS 或剩余 A3 项已列明。
+- [ ] 文件分层/行数门已执行:硬件底层/硬件顶层/软件实现边界清楚;>650 行已评估分文件;>1000 行已拆分或记录 vendor/generated/table/用户确认特殊长文件例外;高频复用小模块已考虑公共库/公共头。
+- [ ] 通信/共享快照门已执行:半双工/共享总线有唯一 master + request-response + timeout + valid frame;RX ISR/前台解析有 budget;跨核/跨 ISR 快照有 `magic`/`seq`/freshness gate;失链/超时不消费旧命令。
+- [ ] 参数持久化门已执行:blob 含 `magic/version/payloadBytes/CRC`;先 load defaults;只有 version 迁移/写回门允许才写 flash;CRC/magic/payloadBytes 错不自动覆盖;flash 写入不进 ISR/控制热路径。
 - [ ] 每个新增源文件已登记构建系统 + LSP(`hf-build-sync`),路径相对。
 - [ ] 每次编辑后跑过 `hf-auto-workflow`,无未修的 CRITICAL/HIGH;极性/数量级/IO 已请用户确认。
 - [ ] 触发文档同步的改动已更新 PROJECT.md(`hf-doc-discipline`)。
@@ -122,6 +130,7 @@ HecateFlow Check:
 
 - 攒一堆编辑最后统一审查 → CRITICAL 漏网,且难定位是哪次改动引入。
 - 新文件忘登记 → 自以为实现了,链接期才发现没编进去。
+- 超过 650 行还继续塞功能 → 文件职责开始混杂,review 只能看局部;超过 1000 行仍不拆且无用户确认例外 → 维护边界失控。
 - 完成后不删计划文件 → 与 PROJECT.md 争真相源。
 - `git add .` 把其他 agent/用户的工作区改动一并提交 → 污染提交、破坏并行协作。
 - **修好 bug 不记 lesson** → 同类坑(编码/ICF/极性)换会话又踩,白白浪费上次的排查。

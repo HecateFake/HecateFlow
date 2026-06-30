@@ -131,6 +131,9 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
     "polarityMagnitude": true,   // 极性/数量级主动提醒确认(点 11)
     "relativePaths": true,       // 相对路径检查(点 12)
     "ioOwnership": true,         // IO 外设归属确认(点 7 & 13)
+    "communicationSafety": true, // 通信/共享快照安全(点 28):request-response/RX budget/freshness gate
+    "paramPersistence": true,    // 参数持久化 fail-closed(点 30):magic/version/payloadBytes/CRC + 写回门
+    "fileSplit": true,           // 文件分层/行数门(点 27):650 行评估/1000 行例外/高频复用封装
     "factConfirmation": true,    // 事实来源二次确认(点 25):用户/SDK/历史注释/既有代码都按证据分级
     "lessonsCapture": true       // 踩坑/被纠正时触发 lessons 记录(点 7)
   },
@@ -167,6 +170,9 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
 | `lessons` | 3 & 7 自进化/不再犯 | hf-lessons | 全部(编辑前检索) |
 | `autoInjection` | 9 自动注入 | hf-init-workspace | hf-doc-discipline |
 | `activeChecks.factConfirmation` | 25 事实来源二次确认 | hf-init-workspace | hf-auto-workflow / hf-review / hf-implement |
+| `activeChecks.communicationSafety` | 28 通信/共享快照安全 | hf-init-workspace | hf-auto-workflow / hf-review / hf-embedded-safety |
+| `activeChecks.paramPersistence` | 30 参数持久化 fail-closed | hf-init-workspace | hf-auto-workflow / hf-doc-discipline / hf-embedded-safety |
+| `activeChecks.fileSplit` | 27 文件分层/行数门 | hf-init-workspace | hf-auto-workflow / hf-review / hf-design-module |
 | `interaction.defaultMode` | 26 自主只读探索 + 实施模式分离 | hf-init-workspace | hecateflow / hf-design-module / hf-implement |
 | `interaction.subagentDelegation` | 26 主动派发只读子代理 + 复审链 | hf-init-workspace | hf-review / hf-refactor / hf-auto-workflow |
 | `interaction.batchImplementationGate` | 26 写入 worker 后置门 | hf-init-workspace | hf-implement |

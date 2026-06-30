@@ -11,8 +11,10 @@
  * 量纲约定(必填,防数量级混用):
  *   {{UNIT_NOTE}}  例:速度域=编码器脉冲/2ms(PID 增益吸收尺度,无物理换算);几何 m;电流 ADC 原始量;时序 µs/ms/tick。
  *
- * 持久化语义:编译期宏=真相源;若有运行时 RAM 镜像/菜单热重载,镜像为可调子集,
- *   flash blob 带 magic/version/CRC,version 不符自动写默认覆盖过期 blob(见 hf-doc-discipline)。
+ * 持久化语义:编译期宏=真相源;若有运行时 RAM 镜像/菜单热重载,镜像为可调子集。
+ *   flash blob 必带 magic/version/payloadBytes/CRC;上电先 load defaults,再用校验通过的 blob 覆盖。
+ *   只有 magic 正确且 version 不符时才走登记迁移或写回门;CRC/magic/payloadBytes 错保留默认且不自动覆盖 flash。
+ *   flash erase/write 阻塞且有寿命,只能在 init/低风险阶段,不得进 ISR/控制 tick/通信热路径(见 hf-doc-discipline / hf-embedded-safety)。
  *
  * 分节索引:
  *   §A 调度时序与模式(ISR 周期 / 分频 / 构建模式宏)

@@ -185,7 +185,16 @@ function Test-StaleStrings($Root) {
         ('只读' + '子代理.*' + '用户' + '授权'),
         ('只读子代理需要' + '用户确认'),
         ('用户' + '确认.*' + '只读'),
-        ('explicit user ' + 'authorization')
+        ('explicit user ' + 'authorization'),
+        ('500 ' + '行'),
+        ('500' + '行'),
+        ('800 ' + '行'),
+        ('800' + '行'),
+        ('超过 \*\*1000 ' + '行\*\* 默认必须'),
+        ('超过 1000 ' + '行默认必须'),
+        ('>1000 ' + '行默认必须'),
+        ('1000 ' + '行必须分开'),
+        ('1000 ' + '行必须拆')
     )
 
     $files = Get-StaleStringFiles $Root
@@ -215,7 +224,7 @@ function Test-OrchestrationContractCoverage($Root) {
     }
 
     $contractText = Get-Content -LiteralPath $contractPath -Raw
-    foreach ($needle in @('主 agent 持权','只读子代理','复审链','Git 确认门','L0','L1','L2','L3','先自主求证','最小提问','主动派发只读子代理','并发槽位','防止占满并发上限')) {
+    foreach ($needle in @('主 agent 持权','只读子代理','复审链','Git 确认门','L0','L1','L2','L3','先自主求证','最小提问','主动派发只读子代理','并发槽位','防止占满并发上限','复审迭代闭环')) {
         if ($contractText -notmatch [regex]::Escape($needle)) {
             Fail "Orchestration contract missing required phrase '$needle': $contractPath"
         }
@@ -223,7 +232,7 @@ function Test-OrchestrationContractCoverage($Root) {
     Test-OrchestrationExactGate `
         $contractPath `
         'orchestration contract exact gate' `
-        @{ Required = @('安全边界','用户已明确要求实现/修改/落地/应用补丁','L2/L3 多路只读调研 \+ 复审子代理 \+ 主 agent 亲验','子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','不能把并发上限写成把只读派发转嫁给用户确认的理由') }
+        @{ Required = @('安全边界','用户已明确要求实现/修改/落地/应用补丁','L2/L3 多路只读调研 \+ 复审子代理 \+ 主 agent 亲验','子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','不能把并发上限写成把只读派发转嫁给用户确认的理由','直到所有复审子代理对当前 change set 给 PASS') }
 
     $skillDirs = @(
         'hecateflow',
@@ -264,27 +273,37 @@ function Test-OrchestrationContractCoverage($Root) {
             [pscustomobject]@{
                 Path = Join-Path $Root 'docs\methodology.md'
                 Label = 'methodology exact worker gate'
-                Required = @('用户已明确要求实现/修改/落地/应用补丁','主动只读并行,但管理并发槽位','防止占满并发上限')
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','主动只读并行,但管理并发槽位','防止占满并发上限','复审迭代到满意')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'docs\methodology.md'
+                Label = 'methodology file split gate'
+                Required = @('硬件底层','硬件顶层','软件实现','650 行','1000 行','用户明确确认')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'docs\methodology.md'
+                Label = 'methodology communication persistence gate'
+                Required = @('唯一 master','request-response','valid frame','magic','seq','freshness gate','payloadBytes','CRC','flash 写入')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hecateflow\SKILL.md'
                 Label = 'hecateflow entry exact gate'
-                Required = @('用户已明确要求实现/修改/落地/应用补丁','防止占满并发上限')
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','防止占满并发上限','硬件底层','硬件顶层','软件实现','650 行','1000 行','高频复用')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hecateflow\references\orchestration-contract.md'
                 Label = 'orchestration concurrency slot gate'
-                Required = @('子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','防止占满并发上限')
+                Required = @('子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','防止占满并发上限','复审迭代闭环','重新派发只读复审')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hf-design-module\SKILL.md'
                 Label = 'hf-design-module exact worker gate'
-                Required = @('用户已明确要求实现/修改/落地/应用补丁')
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','硬件底层','硬件顶层','软件实现','650 行','1000 行','高频复用','request-response','freshness gate','payloadBytes')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hf-implement\SKILL.md'
                 Label = 'hf-implement exact worker gate'
-                Required = @('用户已明确要求实现/修改/落地/应用补丁')
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','硬件底层','硬件顶层','软件实现','650 行','1000 行','特殊长文件','复审迭代闭环','request-response','freshness gate','CRC/magic/payloadBytes 错不自动覆盖')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hf-hw-mapping\SKILL.md'
@@ -299,7 +318,32 @@ function Test-OrchestrationContractCoverage($Root) {
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hf-review\SKILL.md'
                 Label = 'hf-review concurrency slot gate'
-                Required = @('防止占满并发上限','保留复审槽位')
+                Required = @('防止占满并发上限','保留复审槽位','硬件底层','硬件顶层','软件实现','650 行','1000 行','复审迭代闭环','request-response','freshness gate','参数持久化')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-auto-workflow\SKILL.md'
+                Label = 'hf-auto-workflow file split gate'
+                Required = @('文件分层 / 行数门','650 行','1000 行','特殊长文件','高频复用','复审','request-response','freshness gate','payloadBytes')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-refactor\SKILL.md'
+                Label = 'hf-refactor file split gate'
+                Required = @('行为保持分文件','650 行','1000 行','用户确认的特殊长文件','高频复用','复审迭代闭环')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\references\embedded-c-style.md'
+                Label = 'embedded style file split gate'
+                Required = @('硬件底层','硬件顶层','软件实现','650 行','1000 行','用户明确确认','高频复用')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-embedded-safety\SKILL.md'
+                Label = 'hf-embedded-safety communication persistence gate'
+                Required = @('唯一 master','request-response','byte/frame budget','magic','seq','freshness gate','payloadBytes','CRC','flash 写入')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-doc-discipline\SKILL.md'
+                Label = 'hf-doc-discipline communication persistence gate'
+                Required = @('request-response','freshness gate','payloadBytes','CRC','写回门','CRC/magic/payloadBytes 错不自动覆盖')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'skills\hecateflow\references\claude-code-tools.md'
@@ -345,10 +389,17 @@ function Test-OrchestrationContractCoverage($Root) {
             $manifest.interaction.gitConfirmationGate -notmatch 'current change set') {
             Fail "manifest template interaction.gitConfirmationGate must require summary/tests/files-to-stage and current change-set confirmation"
         }
+        foreach ($field in @('communicationSafety','paramPersistence','fileSplit')) {
+            if (-not $manifest.activeChecks -or
+                -not ($manifest.activeChecks.PSObject.Properties.Name -contains $field) -or
+                $manifest.activeChecks.$field -ne $true) {
+                Fail "manifest template must set activeChecks.$field=true"
+            }
+        }
 
         $schemaPath = Join-Path $Root 'skills\hecateflow\references\manifest-schema.md'
         $schemaText = Get-Content -LiteralPath $schemaPath -Raw
-        foreach ($field in @('git.confirmationRequired','git.autoCommitPush','interaction.defaultMode','interaction.subagentDelegation','interaction.batchImplementationGate','interaction.gitConfirmationGate')) {
+        foreach ($field in @('git.confirmationRequired','git.autoCommitPush','interaction.defaultMode','interaction.subagentDelegation','interaction.batchImplementationGate','interaction.gitConfirmationGate','activeChecks.communicationSafety','activeChecks.paramPersistence','activeChecks.fileSplit')) {
             if ($schemaText -notmatch [regex]::Escape($field)) {
                 Fail "manifest schema missing $field"
             }
@@ -373,6 +424,9 @@ function Test-OrchestrationContractCoverage($Root) {
         if ($readmeText -notmatch 'v1\.2' -or $readmeText -notmatch 'orchestration-contract\.md' -or $readmeText -notmatch 'Git 确认门' -or $readmeText -notmatch '先自主求证') {
             Fail "README must advertise v1.2 autonomy-first orchestration contract and Git confirmation gate"
         }
+        if ($readmeText -notmatch '高频复用' -or $readmeText -notmatch '复审 FAIL' -or $readmeText -notmatch 'request-response' -or $readmeText -notmatch 'payloadBytes') {
+            Fail "README must advertise file-split reusable-small-module, review-iteration, communication, and persistence semantics"
+        }
 
         Test-TextContainsPatterns `
             (Join-Path $Root 'docs\methodology.md') `
@@ -388,17 +442,17 @@ function Test-OrchestrationContractCoverage($Root) {
             [pscustomobject]@{
                 Path = Join-Path $Root 'templates\module-design.md.tmpl'
                 Label = 'module-design template'
-                Patterns = @('自主性分档','只读调研计划.*主动派发','最小提问','安全边界','不得 stage / commit / push')
+                Patterns = @('自主性分档','只读调研计划.*主动派发','最小提问','安全边界','不得 stage / commit / push','硬件底层','硬件顶层','软件实现','650 行','1000 行','高频复用','复审迭代闭环','request-response','freshness gate','payloadBytes')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'templates\integration-plan.md.tmpl'
                 Label = 'integration-plan template'
-                Patterns = @('先自主求证','主动派发只读子代理','最小提问','安全边界','Git 确认门')
+                Patterns = @('先自主求证','主动派发只读子代理','最小提问','安全边界','Git 确认门','硬件底层','硬件顶层','软件实现','650 行','1000 行','高频复用','复审迭代闭环','request-response','freshness gate','payloadBytes')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'templates\PROJECT.md.tmpl'
                 Label = 'PROJECT template'
-                Patterns = @('默认自主探索','主动派发.*只读','最小提问','安全边界','Git 确认门')
+                Patterns = @('默认自主探索','主动派发.*只读','最小提问','安全边界','Git 确认门','硬件底层','硬件顶层','软件实现','650 行','1000 行','高频复用','request-response','freshness gate','payloadBytes')
             },
             [pscustomobject]@{
                 Path = Join-Path $Root 'templates\lesson.md.tmpl'

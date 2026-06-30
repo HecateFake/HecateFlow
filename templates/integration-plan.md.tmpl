@@ -24,10 +24,27 @@
 
 - {{DESIGN_DECISION}}
 
+## 分层与文件拆分
+
+- 硬件底层:{{HW_LOW_FILES}}(pin/bus/register/vendor adapter/init/config)
+- 硬件顶层:{{HW_TOP_FILES}}(device facade / 单位状态语义 / owner API)
+- 软件实现:{{SOFTWARE_FILES}}(算法 / 控制 / 应用策略)
+- 公共库 / 公共头候选:{{REUSABLE_LIBRARY_CANDIDATES}}(<650 行但高频复用时也可提前封装)
+- 行数门:{{FILE_SPLIT_GATE}}(>650 行需评估;>1000 行默认拆分,若为特殊长文件须记录用户确认例外)
+
+## 通信 / 共享快照 / 持久化
+
+- 总线/协议契约:{{BUS_CONTRACT}}(唯一 master / request-response / timeout / valid frame / 失链降级)
+- RX 预算:{{RX_BUDGET_PLAN}}(ISR 只入缓冲/置标志;前台 byte/frame budget)
+- 快照新鲜度:{{SNAPSHOT_FRESHNESS}}(`magic` / `seq` / freshness gate / 失链置零或软停)
+- 外部命令导数:{{RX_SEQ_FEEDFORWARD}}(仅新 rxSeq 边沿计算;首帧/超时锚定)
+- 参数持久化:{{PARAM_PERSISTENCE}}(`magic/version/payloadBytes/CRC`;load defaults;version 迁移/写回门;CRC/magic 错不覆盖;flash 写入不进热路径)
+
 ## 协作与 worker 边界
 
 - 主 agent 责任:先自主求证,保留最终上下文、代码主权、方案裁决和 Git 写权限。
 - 只读调研/复审:{{READ_ONLY_AND_REVIEW_PLAN}}(L1-L3 主动派发只读子代理,不需额外用户确认)。
+- 复审迭代闭环:{{REVIEW_ITERATION_PLAN}}(复审 FAIL/CRITICAL/HIGH/MEDIUM 覆盖缺口先修复再复审,直到当前 change set PASS 或只剩 A3 用户确认/物理验证/平台限制)。
 - worker 启用门:用户已明确要求实现/修改/落地/应用补丁,且方案确定、文件范围互斥、worker 边界明确;只读规划/复审不能因为研究充分就使用写入 worker。
 - worker 文件范围:{{WORKER_FILE_SCOPE}}(必须互斥且可独立验证)。
 - worker 禁止事项:{{WORKER_FORBIDDEN_ACTIONS}};固定禁止 stage / commit / push。
@@ -41,12 +58,17 @@
 - [ ] 阶段 1:{{STAGE_1}}
 - [ ] 阶段 2:{{STAGE_2}}
 - [ ] 阶段 3:{{STAGE_3}}
+- [ ] 分层/分文件登记:新增硬件底层、硬件顶层、软件实现或公共库文件后,同步构建系统 + LSP `-I`
 
 每个阶段完成后:跑 hf-auto-workflow 审查 → 同步 PROJECT.md → 勾选本框。
 
 ## 切点核对(来自模块设计卡）
 
 - [ ] 源文件登记(hf-build-sync)
+- [ ] 分层/行数门(>650 行评估;>1000 行拆分或用户确认特殊长文件例外)
+- [ ] 通信/共享快照门(master/request-response/RX budget/`magic`/`seq`/freshness/失链降级)
+- [ ] 参数持久化门(`magic/version/payloadBytes/CRC`/fail-closed/flash 写入时机)
+- [ ] 复审迭代闭环(FAIL 后修复并重新复审到 PASS 或列明 A3 剩余项)
 - [ ] 宏/构建变体
 - [ ] ISR 路由
 - [ ] 外设门控

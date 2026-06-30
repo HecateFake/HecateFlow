@@ -37,6 +37,14 @@
 |------|------|
 | {{FILE}} | {{PURPOSE}} |
 
+### 分层 / 分文件记录
+
+复杂功能按硬件底层、硬件顶层、软件实现分开封装。自写业务文件超过 650 行需记录分文件评估;超过 1000 行默认拆分或封装管理,除非 vendor/generated/table 或用户明确确认特殊长文件例外并记录理由。小于 650 行但高频复用的模块可提前提为公共库或公共头。
+
+| 模块 | 硬件底层 | 硬件顶层 | 软件实现 | 行数/例外说明 |
+|------|----------|----------|----------|---------------|
+| {{MODULE}} | {{HW_LOW_FILES}} | {{HW_TOP_FILES}} | {{SOFTWARE_FILES}} | {{FILE_SPLIT_NOTE}} |
+
 ### 代码级驱动 owner
 
 同一物理硬件驱动实例尽量只归一个 owner 模块,用对象式实例负责 init/config/static state/update;其它模块通过 owner API、接口结构或 init 期绑定访问,避免竞态和管理混乱。
@@ -44,6 +52,22 @@
 | 硬件 / 驱动实例 | owner 模块 / 对象 | 其它模块访问方式 |
 |----------------|-----------------|------------------|
 | {{DRIVER_DEVICE}} | {{DRIVER_OWNER}} | {{DRIVER_ACCESS}} |
+
+### 通信 / 共享快照
+
+半双工/共享总线优先唯一 master + request-response + timeout + valid frame;通信 ISR 只收字节/入缓冲/置标志,前台有限额解析;跨核/跨 ISR 命令用 `magic`/`seq`/freshness gate,失链/超时不消费旧命令。
+
+| 链路 / 快照 | master / owner | 新鲜度字段 | 失链/超时动作 |
+|-------------|----------------|------------|---------------|
+| {{COMM_LINK}} | {{COMM_MASTER}} | {{COMM_FRESHNESS}} | {{COMM_TIMEOUT_ACTION}} |
+
+### 参数持久化
+
+运行时参数 blob 采用 `magic/version/payloadBytes/CRC`;上电先加载默认值,仅可迁移 version mismatch 在写回门允许时覆盖 flash;CRC/magic/payloadBytes 错误不自动覆盖,flash erase/write 不进入 ISR/控制热路径。
+
+| 参数域 | magic | version | 写回门 / 迁移说明 |
+|--------|-------|---------|-------------------|
+| {{PARAM_DOMAIN}} | {{PARAM_MAGIC}} | {{PARAM_VERSION}} | {{PARAM_WRITEBACK_GATE}} |
 
 ## 3. 高危文件 / 引脚总览
 

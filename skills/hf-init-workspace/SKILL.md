@@ -64,7 +64,7 @@ metadata:
    - 否 → `clangd:false`,后续构建同步跳过所有 `-I`/`.clangd` 步骤。
 7. **Git**:提交格式、远端(多远端则全列,提交后须全推)、默认分支;`neverAddAll` 恒 true。
 8. **自主协作与 Git 确认门(点 26)**:写入 `interaction.defaultMode` / `subagentDelegation` / `batchImplementationGate` / `gitConfirmationGate`;`git.confirmationRequired:true`,`git.autoCommitPush:false`。默认自主只读探索,L1-L3 主动派发只读子代理,实现请求进入主 agent 可写流程,worker/Git 不得越权。
-9. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`factConfirmation`/`lessonsCapture`)。
+9. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`communicationSafety`/`paramPersistence`/`fileSplit`/`factConfirmation`/`lessonsCapture`)。
 
 ### 第三阶段:生成与搭建(写)
 

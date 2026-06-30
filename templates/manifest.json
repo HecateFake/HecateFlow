@@ -68,6 +68,9 @@
     "polarityMagnitude": true,
     "relativePaths": true,
     "ioOwnership": true,
+    "communicationSafety": true,
+    "paramPersistence": true,
+    "fileSplit": true,
     "factConfirmation": true,
     "lessonsCapture": true
   },

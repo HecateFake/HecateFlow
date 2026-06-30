@@ -29,6 +29,7 @@
 - 复杂度分档:{{ORCHESTRATION_LEVEL}}(L0 主 agent 自查;L1 自动派只读 reviewer;L2 explorer / architect / reviewer 并行;L3 多路只读 + 复审子代理 + 主 agent 亲验)。
 - 只读调研计划:{{READ_ONLY_RESEARCH_PLAN}}(主动派发,不需额外用户确认)
 - 复审链目标:{{REVIEW_CHAIN_TARGETS}}(检查证据充分性、矛盾、过度推断)。
+- 复审迭代闭环:{{REVIEW_ITERATION_PLAN}}(复审 FAIL/CRITICAL/HIGH/MEDIUM 覆盖缺口先修复再复审,直到当前 change set PASS 或只剩 A3 用户确认/物理验证/平台限制)
 - 主 agent 亲验点:{{MAIN_AGENT_VERIFICATION}}(grep / 读码 / 只读命令确认关键证据)。
 - 写入 worker 候选文件范围:{{WORKER_FILE_SCOPE}};仅在用户已明确要求实现/修改/落地/应用补丁、方案确定、文件范围互斥且 worker 边界明确时启用 worker。
 - 最小提问点:{{MINIMAL_QUESTIONS}}(仅列仓库内无法自主证明的问题;类别限定为外部不可证事实、安全边界、硬件/物理风险、写入 worker 越权风险、Git/远端历史变更)
@@ -50,6 +51,22 @@ void {{module}}Reset({{MODULE}}Struct *p);
 - owner 负责:init / config / static state / update:{{DRIVER_OWNER_SCOPE}}
 - 其它模块访问方式(API/接口/注入绑定):{{DRIVER_ACCESS}}
 
+## 分层 / 分文件方案
+
+- 硬件底层文件(pin/bus/register/vendor adapter/init/config):{{HW_LOW_FILES}}
+- 硬件顶层文件(device facade / 单位状态语义 / owner API):{{HW_TOP_FILES}}
+- 软件实现文件(算法 / 控制 / 应用策略):{{SOFTWARE_FILES}}
+- 公共库 / 公共头候选(<650 行但高频复用):{{REUSABLE_LIBRARY_CANDIDATES}}
+- 行数预判:{{LINE_COUNT_PLAN}}(自写文件 >650 行需分文件评估;>1000 行默认拆分,特殊长文件需用户确认例外并记录理由)
+
+## 通信 / 共享快照 / 持久化方案
+
+- 共享总线 / 半双工契约:{{BUS_CONTRACT}}(唯一 master / request-response / timeout / valid frame / 失链降级)
+- RX ISR 与前台解析边界:{{RX_BUDGET_PLAN}}(ISR 只入缓冲/置标志;前台 byte/frame budget;必要时迁到低关键核/任务)
+- 跨核/跨 ISR 快照:{{SNAPSHOT_FRESHNESS}}(`magic` / `seq` / freshness gate / 失链置零或软停 / 边沿事件单调计数)
+- 外部命令微分/前馈:{{RX_SEQ_FEEDFORWARD}}(只在新 rxSeq 边沿计算;首帧/超时重新锚定;旧帧衰减或清零)
+- 参数持久化:{{PARAM_PERSISTENCE}}(`magic/version/payloadBytes/CRC`;先 load defaults;version 迁移/写回门;CRC/magic 错不覆盖;flash 写入不进热路径)
+
 ## 切点清单(漏一处即翻车）
 
 新增/接入本模块需同步以下全部位点:
@@ -59,6 +76,10 @@ void {{module}}Reset({{MODULE}}Struct *p);
 - [ ] **ISR 路由 / 周期**:{{ISR_TOUCHPOINT}}(若挂中断)
 - [ ] **外设所有权门控**:{{PERIPHERAL_GATE}}(若占用独占外设,用白名单 #if)
 - [ ] **驱动 owner**:{{DRIVER_OWNER_CHECK}}(若触及同一硬件驱动实例,必须单一对象式 owner,避免竞态和多头管理)
+- [ ] **通信 / 共享快照**:{{COMM_SNAPSHOT_CHECK}}(唯一 master/request-response/timeout/valid frame/RX budget/`magic`/`seq`/freshness gate/失链降级)
+- [ ] **参数持久化**:{{PARAM_PERSISTENCE_CHECK}}(`magic/version/payloadBytes/CRC`;CRC/magic 错不覆盖;flash 写入不进 ISR/控制热路径)
+- [ ] **分层/行数门**:{{FILE_SPLIT_CHECK}}(硬件底层/硬件顶层/软件实现分开;>650 行评估;>1000 行拆分或用户确认特殊长文件例外)
+- [ ] **复审迭代闭环**:{{REVIEW_ITERATION_CHECK}}(复审 FAIL 后已修复并重新复审到 PASS 或列明 A3 剩余项)
 - [ ] **共享数据 volatile**:{{VOLATILE_TOUCHPOINT}}(若跨 ISR/核共享)
 - [ ] **文档同步**:PROJECT.md 模块清单 + 边界(见 hf-doc-discipline)
 

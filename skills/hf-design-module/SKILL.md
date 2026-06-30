@@ -2,9 +2,10 @@
 name: hf-design-module
 description: >
   增量设计一个新模块(只读规划,不写源码):先做复用调研(找现成库/抽象),设计对象式接口并定好
-  非扁平子目录放置,列出全部切点(源文件登记/构建变体宏/ISR 路由/外设门控/volatile/极性数量级/文档),
+  非扁平子目录放置,列出全部切点(源文件登记/构建变体宏/ISR 路由/外设门控/volatile/通信协议/共享快照/参数持久化/极性数量级/文档),
   涉执行器/传感器/闭环则标极性数量级检查点,涉独占 IO 外设或硬件驱动则标归属/单一 owner 与分核规划,判定是否先仿真后上板,
-  产出模块设计卡 + 实施计划文件交接 hf-implement,并按自主性优先编排契约标注协作分档/主动只读调研/复审计划。
+  产出模块设计卡 + 实施计划文件交接 hf-implement,并按自主性优先编排契约标注协作分档/主动只读调研/复审计划,
+  同时规划硬件底层/硬件顶层/软件实现三层分文件与 650/1000 行阈值。
   触发:设计模块 / 加功能 / 新模块 / 切点 /
   要不要先仿真 / 极性 / IO 归属 / 驱动所有者 / 硬件驱动归属 / 功能方案 / 模块方案 / 先规划 / 接外设前设计 /
   design module / plan feature / incremental design / feature plan / integration plan。
@@ -40,6 +41,11 @@ metadata:
 - **涉极性/增益却不标检查点**:模块碰执行器/传感器/闭环/增益数量级,设计卡必须标"极性数量级检查点"并引 `hf-hw-mapping`,提示上板辨识 + 闭环核查,不在设计期替用户假定极性。
 - **占独占 IO 外设不标归属**:涉 SPI 屏/总线/共享 ADC 的模块,切点必含外设归属门控(白名单 `#if`)+ 分核规划提示。
 - **硬件驱动无单一 owner**:同一硬件实例若会被多个模块调用,设计卡必须点名代码级 owner(用对象式实例负责 init/config/static state/update)和其它模块的访问方式(API/接口/注入绑定),不允许多个 `.c` 文件各管一套驱动状态制造竞态。
+- **通信模块不定总线权威与新鲜度**:半双工/共享总线必须先设计唯一 master、request-response、timeout、valid frame、链路年龄和失链降级;跨核/跨 ISR 命令必须设计整块快照 + `magic`/`seq`/freshness gate,不能让旧帧继续驱动控制。
+- **通信 ISR 直接解析/无限排空**:设计时必须给 RX ISR 与前台解析划边界:ISR 只收字节/入缓冲/置标志,前台有 byte/frame budget;通信噪声可能影响控制时序时,优先放到低关键核/低优先级任务。
+- **参数持久化没有 fail-closed 契约**:运行时参数落 flash/EEPROM 时,设计卡必须写 `magic/version/payloadBytes/CRC`、load-defaults-first、迁移/写回门、CRC/magic 错不覆盖和 flash 写入时机。
+- **复杂功能不分层塞进一个文件**:涉及外设、驱动 facade、算法/控制/应用策略时,设计卡必须拆出硬件底层、硬件顶层、软件实现三组职责;不得把 vendor 调用、单位转换、控制策略混在一个热点 `.c`。
+- **忽略文件长度趋势**:预估自写业务文件超过 650 行必须写分文件评估;超过 1000 行默认拆分,只有 vendor/generated/table 或用户明确确认的特殊长文件可不拆并记录例外理由。小于 650 行但高频复用的 PID/滤波/协议/设备 facade 也可提前封成库或公共头。
 - **把来源说法全当事实**:设计输入里的用户描述、SDK/provider 文档或历史注释都可能缺条件或有错;若出现"不可能出现"类断言,设计卡须列入"待二次确认",不得直接作为设计边界。
 - **计划文件/设计卡写绝对机器路径**:引用工程文件一律工作区相对路径(`config/configMotor.h`、`control/...`),不写 `<盘符>:\...`。
 - **设计阶段把子代理当写手**:本 skill 只允许只读调研/规划/复审。实施 worker 必须等 `hf-implement` 吸收设计卡、用户已明确要求实现/修改/落地/应用补丁且文件范围互斥后才可用(见 `../hecateflow/references/orchestration-contract.md`)。
@@ -50,34 +56,45 @@ metadata:
 2. **事实来源与待确认假设**:把用户需求、SDK/provider 文档或实现、历史注释、既有代码分别列为已证实/待二次确认/未证实假设;遇"不可能出现"先要求用户二次确认复现条件或物理事实,并把未证实项写进设计卡,不当作边界。
 3. **复用调研**(优先级严格递减):① 本仓已有库/抽象(clamp/wrap/PID/低通/数学工具)→ ② 现成外部库 → ③ 才新建。重点找"为复用而设计却被手写绕过"的抽象。结论填进设计卡的复用表。
 4. **自主性分档(点 26)**:按 `../hecateflow/references/orchestration-contract.md` 判 A0-A3 与 L0-L3。先自主求证;L1+ 必须先主动派发只读调研/复审(不只写计划),吸收其证据、矛盾和遗漏风险后,再在设计卡记录分档、已派发视角、采纳/未采纳结论和后续复审计划;若后续需要 worker,先标明互斥文件范围、禁止事项和验证方式。
-5. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。若接口背后对应同一物理驱动实例,同时点名**代码级 owner**:谁以对象式实例负责 init/config/static state/update,其它模块只通过 owner API/接口/注入绑定访问,避免竞态和管理混乱。接口契约(单位/量纲/极性/返回语义/owner 边界)写头注释。详见 `../references/embedded-c-style.md` 嵌入式 OOP 段。
-6. **放置(非扁平,点 6)**:据 manifest `targets[].layout.subdirs` 决定新模块落哪个功能子目录(控制→`control/`、驱动→`sensor/comm/`、参数→`config/`);引脚从 `config/pinMap.h` 取、参数从 `configHeader` 取,不硬编码。新增子目录须同步构建 include 路径 + LSP `-I`(切点见步 7)。
-7. **切点清单**(用 `../hecateflow/templates/module-design.md.tmpl`),逐项列全:
+5. **分层/分文件方案**:复杂功能先拆职责再命名文件:硬件底层(`*_ll`/bus/platform/vendor adapter)负责 pin/bus/register/vendor init/config;硬件顶层(`*_device`/facade/owner)负责统一单位、状态、错误语义和 owner API;软件实现(`*_control`/algorithm/app)只依赖顶层接口。预估每个自写文件行数:>650 写分文件评估;>1000 默认拆分,除非 vendor/generated/table 或用户明确确认特殊长文件例外并记录理由;高频复用模块即使 <650 行也可提前封库/公共头。
+6. **接口设计(对象式,点 5)**:通用能力封成 `xxxStruct` + `Init`/`Update`/`Reset`,把实例指针作首参(`self`/`this`),多实例隔离状态(如四轮各持一 PID 实例);换硬件用函数指针/init 绑定注入具体驱动(多硬件兼容 API)。若接口背后对应同一物理驱动实例,同时点名**代码级 owner**:谁以对象式实例负责 init/config/static state/update,其它模块只通过 owner API/接口/注入绑定访问,避免竞态和管理混乱。接口契约(单位/量纲/极性/返回语义/owner 边界)写头注释。详见 `../references/embedded-c-style.md` 嵌入式 OOP 段。
+7. **放置(非扁平,点 6)**:据 manifest `targets[].layout.subdirs` 决定新模块落哪个功能子目录(控制→`control/`、驱动→`sensor/comm/`、参数→`config/`);引脚从 `config/pinMap.h` 取、参数从 `configHeader` 取,不硬编码。新增子目录须同步构建 include 路径 + LSP `-I`(切点见步 8)。
+8. **切点清单**(用 `../hecateflow/templates/module-design.md.tmpl`),逐项列全:
    - 源文件登记(构建系统 + LSP,见 `hf-build-sync`;路径相对)。
    - 构建变体宏(若引入新模式 → 定义/调用/ISR 路由三处守卫对齐)。
    - ISR 路由 / 周期(若挂中断)。
    - **外设/驱动所有权门控**(若占独占 IO 外设或同一硬件驱动实例 → 白名单 `#if` + 分核规划 + 代码级 owner,见步 8)。
+   - **通信协议 / 共享快照**(若涉半双工/共享总线/跨核/跨 ISR 命令 → 唯一 master、request-response、timeout、valid frame、`magic`/`seq`/freshness gate、失链降级、RX budget)。
+   - **参数持久化**(若改运行时参数存储 → `magic/version/payloadBytes/CRC`、load defaults、version 迁移、CRC/magic 错不覆盖、flash 写入时机)。
    - 共享数据 volatile(若跨 ISR/核)。
    - **极性 / 数量级**(若碰执行器/传感器/闭环/增益 → 见步 9)。
    - 文档同步(PROJECT.md 模块清单 + 边界)。
-8. **IO 外设 / 驱动 owner 检查(点 13/24)**:模块若占用单实例 IO 外设——核对 manifest `targets[].ownedPeripherals`:本 target 是否 owner?门控是否白名单 `#if`(非黑名单,防新增模式默认抢占)?**主动提示该外设多核归属与分核规划**(其它核如何让出)。模块若接管同一硬件驱动实例——设计卡必须写明代码级 owner 模块、owner 负责的 `init/config/static state/update`、其它模块访问方式(API/接口/注入绑定),并检查是否已有其它 `.c` 文件维护同一驱动状态而造成竞态。门控机制细节归 `hf-embedded-safety`,本步只在设计期标注切点。
-9. **极性 / 数量级检查点(点 11,引 `hf-hw-mapping`)**:模块若碰执行器命令、传感器反馈、闭环控制或增益/步长——设计卡标注:
+9. **IO 外设 / 驱动 owner 检查(点 13/24)**:模块若占用单实例 IO 外设——核对 manifest `targets[].ownedPeripherals`:本 target 是否 owner?门控是否白名单 `#if`(非黑名单,防新增模式默认抢占)?**主动提示该外设多核归属与分核规划**(其它核如何让出)。模块若接管同一硬件驱动实例——设计卡必须写明代码级 owner 模块、owner 负责的 `init/config/static state/update`、其它模块访问方式(API/接口/注入绑定),以及多来源控制同一物理输出时的显式优先级仲裁(如安全态 > 事件 > 常规 pattern > 静默),并检查是否已有其它 `.c` 文件维护同一驱动状态而造成竞态。门控机制细节归 `hf-embedded-safety`,本步只在设计期标注切点。
+10. **通信 / 共享快照 / 持久化检查(点 28/30,引 `hf-embedded-safety`)**:模块若涉及总线协议、跨核/跨 ISR 命令或参数持久化——设计卡标注:
+   - 半双工/共享总线的唯一 master、request-response、有效帧校验、timeout、链路年龄、失链降级。
+   - RX ISR 与前台解析边界:ISR 只入缓冲/置标志,前台有 byte/frame budget;必要时迁到低关键核/低优先级任务,用快照桥接热路径。
+   - 快照字段:`magic`、`seq`/边沿单调计数、freshness gate、失链时置零/软停/降级;外部命令微分/前馈只在新 `rxSeq` 边沿计算。
+   - 参数 blob:`magic/version/payloadBytes/CRC`;先 load defaults,只有 version 迁移/写回门允许才写 flash,CRC/magic 错不覆盖;flash 写入不进 ISR/控制热路径。
+11. **极性 / 数量级检查点(点 11,引 `hf-hw-mapping`)**:模块若碰执行器命令、传感器反馈、闭环控制或增益/步长——设计卡标注:
    - 涉及的方向系数在哪(`headers.polaritySource` 的 §极性段),**新增执行器/传感器须在该段加方向系数宏**(每路一个,占位待辨识),不藏 Kp、不散落 `.c`。
    - 提示"上板开环辨识 ±1 + 闭环须传感器正向=被控量正向(手动转动确认)"。
    - 增益作用于哪个量纲(不跨环照搬)、菜单步长须与范围/钳位同量级。
    - 细节方法论交 `hf-hw-mapping`,本步只把它列为必经检查点 + 生成提醒文案。
-10. **先仿真后上板判定**:模块是否含可在 PC 验证的算法/几何/协议?是 → 标注先用仿真工具(manifest `simulation.tools`)验证再上板。
-11. **安全预检**:调 `hf-embedded-safety` 视角过一遍(新模块有无并发/数值/外设/极性风险)。
-12. 产出设计卡 + 初始化实施计划文件(`../hecateflow/templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
+12. **先仿真后上板判定**:模块是否含可在 PC 验证的算法/几何/协议?是 → 标注先用仿真工具(manifest `simulation.tools`)验证再上板。
+13. **安全预检**:调 `hf-embedded-safety` 视角过一遍(新模块有无并发/数值/外设/极性/通信/持久化风险)。
+14. 产出设计卡 + 初始化实施计划文件(`../hecateflow/templates/integration-plan.md.tmpl`,路径引用相对),交 `hf-implement`。
 
 ## PASS/FAIL 清单
 
 - [ ] 复用调研做过:已确认没有现成库可用才决定新写。
 - [ ] 事实来源与待确认假设已列:用户/SDK/provider/历史注释/既有代码未被无证据当事实;"不可能出现"类断言已标二次确认。
 - [ ] 协作分档已写入设计卡;L1+ 已先实际派发只读调研/复审并吸收结论,L2/L3 有复审链结果和后续复审计划;未把子代理当写手。
+- [ ] 分层/分文件方案已写:硬件底层、硬件顶层、软件实现职责清楚;>650 行有分文件评估,>1000 行有拆分方案或用户确认的特殊长文件例外;高频复用模块已考虑公共库/公共头。
 - [ ] 接口是对象式(`xxxStruct`+Init/Update/Reset)、与调用方解耦、多实例隔离。
 - [ ] 放置遵 `layout.subdirs`,引脚/参数从 `config/` 取,不硬编码。
 - [ ] 切点清单覆盖全部类(源登记/宏/ISR/外设/volatile/极性数量级/文档),无遗漏。
+- [ ] 通信/共享快照模块已列唯一 master、request-response、timeout、valid frame、RX budget、`magic`/`seq`/freshness gate 和失链降级。
+- [ ] 参数持久化模块已列 `magic/version/payloadBytes/CRC`、load defaults、version 迁移/写回门、CRC/magic 错不覆盖和 flash 写入时机。
 - [ ] 涉极性/增益的已标 `hf-hw-mapping` 检查点 + 上板辨识/闭环核查提示,未替用户假定极性。
 - [ ] 涉独占 IO 外设的已标归属门控(白名单 `#if`)+ 分核规划提示。
 - [ ] 涉硬件驱动实例的已标代码级 owner + 其它模块访问方式,无多头状态管理/竞态计划。
@@ -88,7 +105,7 @@ metadata:
 
 ## 验证
 
-- agent 能做:复用调研、对象式接口草案、放置决策、切点清单、极性/IO 检查点标注、计划文件。
+- agent 能做:复用调研、三层分文件方案、对象式接口草案、放置决策、切点清单、极性/IO 检查点标注、计划文件。
 - 交用户:确认复用决策与切点完整性;**极性/数量级的物理事实(±1 辨识、闭环轴向、增益整定)留待 `hf-implement`/上板**,再进实施。
 
 ## 反面教训
@@ -98,6 +115,10 @@ metadata:
 - **碰极性却不标检查点** → 实施时把方向翻转随手写进 Kp 负号或某 `.c`,埋下失控隐患。
 - **占共享屏/总线不标归属门控** → 实施时两个核同时写,运行期抢占乱码。
 - **接硬件驱动不定 owner** → 实施时 A 模块 init、B 模块 set、C 模块保存缓存,配置被覆盖且竞态边界不清,没人知道谁管生命周期。
+- **接半双工总线不定 master** → 从机周期自发发送把总线占满,master 命令和遥测互相撞帧;设计阶段应先定 request-response 和有效帧/超时。
+- **通信噪声不隔离** → RX 中断风暴拖死控制热路径;设计阶段应把 ISR/前台 budget、必要时迁核/低优先级任务、快照桥接写清。
+- **参数持久化写回太积极** → CRC/magic 错也覆盖 flash,掩盖损坏或误写;设计阶段应 fail closed。
+- **复杂功能塞成一个大文件** → vendor 调用、单位换算、控制策略搅在一起;超过 650 行后继续加逻辑会让 review 失焦,超过 1000 行还不拆必须有用户确认的特殊长文件理由。
 - 该先仿真的几何/协议直接上板 → 板上调参成本远高于 PC 验证。
 
 ## 平台差异

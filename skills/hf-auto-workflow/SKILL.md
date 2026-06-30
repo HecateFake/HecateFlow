@@ -3,7 +3,7 @@ name: hf-auto-workflow
 description: >
   每次编辑源文件后立即自动跑的轻量审查门:核心 6 步(目标确认 → volatile 扫描 → ISR 安全 → 数值安全 →
   风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设/驱动 owner 归属、
-  事实来源二次确认、lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属/事实类显式请用户确认。是 HecateFlow 的
+  通信/共享快照安全、参数持久化 fail-closed、事实来源二次确认、文件分层/行数门、lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属/事实类显式请用户确认。是 HecateFlow 的
   always-on 核心,并按自主性优先编排契约对高风险改动升级主动只读复审或 hf-review。HecateFlow 安装器会给 Claude Code 自动安装 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
   auto workflow / post-edit review / 每次改完代码 / 改完帮我检查 / 轻量检查 / 极性提醒 /
   相对路径检查 / IO 归属 / 驱动 owner / 硬件驱动归属 / 不可能出现 / SDK 也可能错 / 事实二次确认 /
@@ -39,9 +39,12 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 2. 扫本次改动里的 ISR/共享变量/执行器输出/除零和钳位。
 3. 扫新增路径是否绝对路径,新增文件是否需要构建登记。
 4. 若触及极性/增益/IO 归属/硬件驱动 owner,明确请用户确认物理事实或 owner 边界,不自行假定。
-5. 若本次是 bug 修复或用户纠正,标出用户/SDK/注释/代码中哪些说法已证实,哪些仍是假设;遇"不可能出现"先二次确认。
-6. 做复杂度分档:L0 主 agent 本门自查;L1 立即派至少 1 个只读 reviewer;L2/L3 立即多路只读分工 + 复审链或进入 `hf-review`。
-7. 输出一行摘要 + 下方简表。
+5. 若触及半双工/共享总线/跨核快照/外部命令,核对唯一 master、request-response、timeout、valid frame、RX budget、`magic`/`seq`/freshness gate、失链降级。
+6. 若触及参数持久化/flash 写入,核对 `magic/version/payloadBytes/CRC`、load defaults、CRC/magic 错不覆盖、写入不在 ISR/控制热路径。
+7. 检查本次触及的自写文件行数:>650 行列 MEDIUM 分文件评估;>1000 行列 HIGH,除非 vendor/generated/table 或用户确认特殊长文件例外。
+8. 若本次是 bug 修复或用户纠正,标出用户/SDK/注释/代码中哪些说法已证实,哪些仍是假设;遇"不可能出现"先二次确认。
+9. 做复杂度分档:L0 主 agent 本门自查;L1 立即派至少 1 个只读 reviewer;L2/L3 立即多路只读分工 + 复审链或进入 `hf-review`。若复审 FAIL,先修可证问题再复审,直到 PASS 或只剩 A3 用户确认/物理验证/平台限制。
+10. 输出一行摘要 + 下方简表。
 
 ```text
 HecateFlow Auto:
@@ -87,8 +90,11 @@ HecateFlow Auto:
 6. **极性/数量级提醒-确认**(`activeChecks.polarityMagnitude`):本次改动**触及执行器/传感器/闭环极性或增益数量级**时(改 `*_DIR` 方向系数、新增驱动接线、整定 PID Kp、改菜单步长、上 yaw/航向闭环)→ **不静默改、不自行假定极性**,在回复里显式请用户核实物理事实:此 `*_DIR` 是本台硬件标定结果需开环辨识、闭环轴向须手动转车确认、增益作用量纲与步长须同量级。**红线就地拦截:发现极性翻转藏进 PID Kp 负号 → CRITICAL**(Kp 兼增益+极性,误改即正反馈跑飞),提示搬回 §极性段方向系数宏(细节委派 `hf-hw-mapping`,搬迁属改行为走 `hf-refactor`)。
 7. **相对路径检查**(`activeChecks.relativePaths`):本次新增/改动的**构建配置、include、LSP `-I`、脚本**中若出现**绝对机器路径**(`<盘符>:\...`、`/home/...` 等)→ HIGH,提示改相对(`$PROJ_DIR$\..`、`-I./src`、`./tools/...`);绝对路径入库换机即坏(见 `../references/git-discipline.md`、`../references/embedded-c-style.md` 路径纪律)。
 8. **IO 外设 / 驱动 owner 归属确认**(`activeChecks.ioOwnership`):本次改动**触及单实例 IO 外设**(SPI 屏/共享总线/共享 ADC/调试 UART 等)时 → 核对该外设在 manifest `targets[].ownedPeripherals[]` 的 `owner` 是否与当前 target 一致;**门控须白名单 `#if`(非黑名单)**否则新增模式默认抢占 → HIGH;跨核归属敏感(`io:true`)→ 提醒用户该外设归属并促分核任务规划。若本次改动**触及硬件驱动实例的 init/config/static state/update 或底层寄存器/引脚访问** → 检查同一驱动是否只有一个代码级 owner;发现多个 `.c` 各自维护驱动状态、重复 init/set、或绕过 owner API 直接访问底层 → HIGH,提示收敛到对象式 owner + API/接口/注入绑定,避免竞态和管理混乱(细节委派 `hf-hw-mapping`/`hf-embedded-safety`)。
-9. **事实来源二次确认**(`activeChecks.factConfirmation`):本次改动若来自 bug 排查、用户纠正、"不可能出现"断言或 SDK/厂商行为假设 → 核对修复依据是否把用户描述、SDK/厂商文档/实现、历史注释、既有代码、agent 推断分为"已证实事实 / 未证实假设 / 待用户确认"。未证实断言直接驱动修复 → HIGH;需二次确认的,输出 `fact confirmations` 并请求用户确认复现条件/证据。
-10. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法 / 发现用户或 SDK/provider 断言需二次确认** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
+9. **通信 / 共享快照安全**(`activeChecks.communicationSafety`):本次改动若触及半双工/共享总线、UART/总线 RX、跨核/跨 ISR 命令或外部命令导数 → 核对唯一 master + request-response + timeout + valid frame;ISR 只收字节/入缓冲/置标志,前台解析有 byte/frame budget;快照含 `magic`/`seq`/freshness gate,失链/超时不读旧命令;微分/前馈只在新 `rxSeq` 边沿计算。缺失 → HIGH。
+10. **参数持久化 / flash 写入**(`activeChecks.paramPersistence`):本次改动若触及运行时参数 blob 或 flash/EEPROM 写入 → 核对 `magic/version/payloadBytes/CRC`;先 load defaults,只有 version 迁移/写回门允许才写 flash;CRC/magic/payloadBytes 错不自动覆盖;erase/write 不在 ISR/控制 tick/通信热路径。缺失 → HIGH。
+11. **事实来源二次确认**(`activeChecks.factConfirmation`):本次改动若来自 bug 排查、用户纠正、"不可能出现"断言或 SDK/厂商行为假设 → 核对修复依据是否把用户描述、SDK/厂商文档/实现、历史注释、既有代码、agent 推断分为"已证实事实 / 未证实假设 / 待用户确认"。未证实断言直接驱动修复 → HIGH;需二次确认的,输出 `fact confirmations` 并请求用户确认复现条件/证据。
+12. **lessons 记录触发**(`activeChecks.lessonsCapture`):本次若**踩了非显而易见的坑 / 被用户纠正 / 确认了一个会复发的好做法 / 发现用户或 SDK/provider 断言需二次确认** → 提示按 `hf-lessons` 记一条到 `.hecateflow/lessons/`。**反向**:编辑前已由 `hf-implement`/`hf-design-module` 检索过 `INDEX.md` 命中的 lesson,本步确认其"如何避免"动作已落实(recall→avoid 闭环,见 `hf-lessons`)。
+13. **文件分层 / 行数门**(`activeChecks.fileSplit`):本次触及自写业务 `.c/.h` 时统计文件长度。>650 行且继续加功能 → MEDIUM,要求给出分文件评估(硬件底层/硬件顶层/软件实现、公共库/公共头候选);>1000 行且继续增长 → HIGH,默认先拆分或封装管理。vendor/generated/register map/buffer table 可例外;自写特殊长文件只有用户明确确认并记录理由后可不拆。
 
 ## 严重级别与行动
 
@@ -112,14 +118,18 @@ HecateFlow Auto:
 
 - [ ] 核心 6 步 + 激活的扩展检查全跑过(未跳过激活项)。
 - [ ] 已做 L0-L3 协作分档;L1 已派至少 1 个只读 reviewer,L2/L3 已多路只读 + 复审链或进入 `hf-review`,未单人自证高风险结论。
+- [ ] 若本门触发复审,FAIL/CRITICAL/HIGH/MEDIUM 覆盖缺口已修复并重新复审,当前 change set PASS 或剩余 A3 项已列明。
 - [ ] CRITICAL/HIGH 已自动修,无遗留(含"极性藏 Kp 负号"这条 CRITICAL)。
 - [ ] 目标 target 与用户上下文一致(不符已停并问)。
 - [ ] 触及极性/轴向/数量级时已**显式请用户确认物理事实**,未自行假定极性。
 - [ ] 新增构建/include/LSP/脚本无绝对机器路径(相对路径)。
 - [ ] 触及单实例 IO 外设时已核对归属 + 门控为白名单 `#if`;跨核敏感已提醒分核规划。
 - [ ] 触及硬件驱动状态/初始化/底层访问时已核对代码级 owner;无重复驱动状态、重复 init/set、竞态访问或绕过 owner API。
+- [ ] 触及通信/共享快照时已核对唯一 master、request-response、timeout、valid frame、RX budget、`magic`/`seq`/freshness gate、失链降级和新帧前馈。
+- [ ] 触及参数持久化/flash 写入时已核对 `magic/version/payloadBytes/CRC`、load defaults、CRC/magic 错不覆盖、写入不在热路径。
 - [ ] 修 bug/被纠正/SDK 假设场景已做事实来源分级;"不可能出现"类断言已要求二次确认,未直接当事实落修复。
 - [ ] 本次踩坑/被纠正/好做法已提示按 `hf-lessons` 记录;编辑前命中的 lesson 规避动作已落实。
+- [ ] 本次触及自写大文件时已执行行数门:>650 行有分文件评估;>1000 行已要求拆分或记录 vendor/generated/table/用户确认特殊长文件例外;高频复用小模块已考虑公共库/公共头。
 - [ ] 未编辑 SDK/第三方/仿真 PC 代码;若依赖 SDK 行为,已读源/文档/证据验证其语义。
 - [ ] 输出了一行摘要。
 
@@ -137,14 +147,17 @@ HecateFlow Auto:
 - 改了 `*_DIR` 极性自行假定方向不提醒用户 → 在未标定映射上调正号 Kp,上板正反馈跑飞(极性属物理事实,agent 不能独断)。
 - 新增 `.clangd`/`.ewp` 顺手写了绝对盘符路径 → 换机/换人检出即坏,本该相对路径。
 - 同一驱动被多个模块各自管理状态 → setter/init 顺序和缓存状态互相覆盖,表现为"偶发不生效";编辑后应立即收敛为对象式 owner,避免竞态。
+- 通信 ISR 无预算或半双工从机自发发送 → 噪声/旧帧把实时控制拖死;编辑后应立即补 request-response、RX budget 与 freshness gate。
+- 参数持久化 CRC 错仍写回 → 损坏数据被静默固化;编辑后应补 fail-closed 门。
 - 轻信"用户说不可能"或"SDK/provider 不会错" → 未证实断言直接支配修复,真实根因被排除;编辑后应补事实来源分级和二次确认。
 - 编辑前不检索 lessons、编辑后也不记录 → 同类坑(GBK 编码、ICF ASCII)换会话又踩,"不再犯"沦为空话。
+- 超过 650 行的热点文件继续堆功能却不评估 → 大文件越来越像杂物间;超过 1000 行仍不拆且没有用户确认例外,后续 agent 很难安全修改。
 
 ## 平台差异
 
 - 自动触发:Claude PostToolUse hook 由 `install.ps1` / `install.sh` 默认安装;Codex 靠 prompt 自律(无 hook)。
 - 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载相关 skill,多代理工具可用时主动使用 `multi_agent_v1.spawn_agent` 派只读复核,无工具或宿主策略限制时主会话顺序执行并声明平台限制导致未做独立复核。全部委派遵守 `../hecateflow/references/orchestration-contract.md`。
-- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`factConfirmation`/`lessonsCapture` 为 true 时,Claude 端 PostToolUse hook 会提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
+- 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`communicationSafety`/`paramPersistence`/`fileSplit`/`factConfirmation`/`lessonsCapture` 为 true 时,Claude 端 PostToolUse hook 会提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考
 
