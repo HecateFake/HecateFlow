@@ -5,13 +5,13 @@
 
 ## 第一性原则
 
-上下文是稀缺资源。把所有工程知识塞进一个大文件,每次会话全量加载 → 烧光上下文且找不到重点。解法是**三层分级 + 按需下钻**:冷启动只读纲领,定位到目标后才下钻该处的单一真相源,命中具体场景才读对应规则。文档不是写一次的静态档案,而是**随代码同次提交校准**的活系统。
+上下文是稀缺资源。把所有工程知识塞进一个大文件,每次会话全量加载 → 烧光上下文且找不到重点。解法是**三层分级 + 按需下钻**:冷启动只读纲领,定位到目标后才下钻该处的单一真相源,命中具体场景才读对应规则。文档不是写一次的静态档案,而是**随代码同次提交校准**的活系统;其中自主性优先多模型编排和 Git 确认门属于纲领级约束,必须被所有 CLI 冷启动读到。
 
 ## 三层分级
 
 | 层 | 文件 | 内容 | 何时读 |
 |----|------|------|--------|
-| ① 纲领 | `CLAUDE.md`/`AGENTS.md`、`docs/README.md`、`docs/*`(PINOUT/GLOSSARY/LIBRARY_VERSIONS) | 行为规则 + 场景 + target 识别 + 跨 target 拓扑/通信表 + 导航 | **每次冷启动**(harness 自动注入纲领入口) |
+| ① 纲领 | `CLAUDE.md`/`AGENTS.md`、`docs/README.md`、`docs/*`(PINOUT/GLOSSARY/LIBRARY_VERSIONS) | 行为规则 + 自主性优先多模型编排 + Git 确认门 + 场景 + target 识别 + 跨 target 拓扑/通信表 + 导航 | **每次冷启动**(harness 自动注入纲领入口) |
 | ② 核内真相源 | 各 target 的 `PROJECT.md` | 状态卡 / 模块清单 / 边界(ISR 时序、参数、物理常量、接口)/ 验证清单 | **定位到某 target 后下钻** |
 | ③ 场景规则 | `.claude/rules/*.md` + 临时 `INTEGRATION_PLAN.md` | 场景化检查清单(安全/构建同步/外设归属/极性...) + 一次性多阶段计划 | **命中具体场景时** |
 
@@ -40,6 +40,7 @@
 | 改极性/方向系数 | `configHeader` §极性段注释 + 提醒用户核实接线(见 hf-hw-mapping) |
 | 改/同步共享库 | `docs/LIBRARY_VERSIONS.md` |
 | 新增规则 | rule 文件 + `instructions[]` + rules/README 触发表 + 镜像入口(见 `../hecateflow/references/auto-injection.md`) |
+| 修改协作/Git 边界 | `CLAUDE.md`/`AGENTS.md` + manifest `interaction`/`git` + `../hecateflow/references/orchestration-contract.md`/`git-discipline.md` + hook 提醒 |
 
 **规则/skill/术语与代码同源**:代码改动使某 rule/skill/术语描述失效 → 同次提交校准,与 PROJECT.md 同等约束。
 
@@ -52,6 +53,8 @@
 3. **多 target 相关或反复出现** → 升级为 `.claude/rules/` 的"禁止/反面教训"段(并按 auto-injection 登记注入)。
 4. **可机械检查** → 并入 `hf-auto-workflow` 的审查步骤,自动拦截。
 
+协作事故(未自主查证、过度提问、只读任务误写、worker 越权、缺复审链、绕过 Git 确认门)先记 lesson;重复出现或跨 target 适用时升级为纲领规则或 `../hecateflow/references/orchestration-contract.md`。
+
 详见 `hf-lessons`。
 
 ## PASS / FAIL(文档健康度自查)
@@ -59,6 +62,7 @@
 - [ ] 纲领层有 关键词→target 映射 + 同名高危文件登记 + 导航表。
 - [ ] 每个 target 有 `PROJECT.md` 且是该核单一真相源(状态/模块/边界/验证)。
 - [ ] 本次代码改动按"同步矩阵"在同次提交更新了对应文档/规则/术语。
+- [ ] 纲领入口、manifest、hook、skill 红线对自主性优先多模型编排和 Git 确认门说法一致。
 - [ ] 新增规则已登记注入列表 + 触发表 + 镜像入口。
 - [ ] 反复踩的坑已升级为 rule/auto-workflow 检查,不只停在 lesson。
 
@@ -67,11 +71,13 @@
 - 所有知识塞一个 `CLAUDE.md` 巨文件 → 每会话烧光上下文还抓不住重点。分级是为省上下文,不是为整齐。
 - 改了协议只更新一端 PROJECT.md,纲领通信表不动 → 下个 agent 按旧帧格式改另一端,链路对不上。
 - lesson 记了但从不升级为 rule → 同类坑换个 agent 又踩,"不再犯"沦为空话。
+- 只在某个 skill 写"不得自动提交",但 CLAUDE.md/AGENTS.md 未写 → 换 CLI 后 Git 确认门消失。
 - 共享库强行"统一"把有意裁剪的版本覆盖回臃肿版 → 破坏按需演进。
 
 ## 参考
 
 - 经验记忆:`hf-lessons`、`../hecateflow/templates/lesson.md.tmpl`、`../hecateflow/templates/lessons-index.md.tmpl`
 - 注入:`../hecateflow/references/auto-injection.md`
+- 编排契约:`../hecateflow/references/orchestration-contract.md`
 - git 同次提交:`git-discipline.md`
 - 文档纪律主 skill:`hf-doc-discipline`

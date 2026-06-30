@@ -3,7 +3,8 @@ name: hf-init-workspace
 description: >
   交互式初始化一个嵌入式开发工作区:探测/询问 MCU 家族、架构、工具链、构建系统及其文件登记方式、
   源语言/编码、文档位置;采集固化工程应用场景(domain/约束/安全规则/禁止项),询问是否用 clangd,
-  搭建规则/skill 自动注入(入口文件 + instructions 列表 + Claude Code hook),生成持久化工程清单
+  搭建规则/skill 自动注入(入口文件 + instructions 列表 + Claude Code hook),把自主性优先编排/Git 确认门写进 manifest 和纲领,
+  生成持久化工程清单
   .hecateflow/project.json + 开发纲领 workspace-guide。MCU 无关,一次性,路径默认相对。
   触发:初始化工作区 / 新建 hecateflow / 工程脚手架 / 第一次用 hecateflow / 固化场景 / 自动注入 /
   接入现有嵌入式工程 / 生成 project.json / 生成 AGENTS.md / 生成 CLAUDE.md / 询问 clangd /
@@ -18,7 +19,7 @@ metadata:
 
 # hf-init-workspace — 交互式工作区初始化 / Interactive Workspace Init
 
-为一个嵌入式工作区建立 HecateFlow 的"交互记忆基座":持久化工程清单 `.hecateflow/project.json` + 一份开发纲领 + 自动注入入口。一个工作区只跑一次;之后所有 skill 靠这份 manifest 做默认值。本次(v1.1)在原"探测+询问+生成 manifest"基础上,新增四件**奠基性**采集/搭建:**固化场景**(点 1)、**clangd 询问**(点 10)、**自动注入搭建**(点 9)、**相对路径默认**(点 12)。
+为一个嵌入式工作区建立 HecateFlow 的"交互记忆基座":持久化工程清单 `.hecateflow/project.json` + 一份开发纲领 + 自动注入入口。一个工作区只跑一次;之后所有 skill 靠这份 manifest 做默认值。本次(v1.2)在原"探测+询问+生成 manifest"基础上,把**自主性优先多模型编排契约**写进 manifest 与纲领:先自主求证、主动派发只读子代理、最小提问、实施 worker 后置、Git 确认门。
 
 ## 适用 / 不适用
 
@@ -31,7 +32,7 @@ metadata:
 
 ## 第一性原则
 
-**先探测,再询问,只问探测不到的;一次把"常驻上下文"奠基好。** 工作区里的工程文件(`.ewp`/`CMakeLists.txt`/`Makefile`/`.uvprojx`/`platformio.ini`)已经透露了构建系统与目录结构;agent 应主动读出来预填,把用户的交互负担降到最低。探测结果必须经用户确认再写入,不擅自定论。除构建事实外,还有三类**写一次、常驻受益**的信息必须在初始化时奠基,否则后续每个无上下文 agent 都要重新摸索:① **场景**(为什么这样设计,免每会话重述)、② **注入通道**(规则/skill 怎么被自动加载,否则规则形同虚设)、③ **路径纪律**(相对路径,否则换机即坏)。
+**先自主求证,再最小提问;一次把"常驻上下文"奠基好。** 工作区里的工程文件(`.ewp`/`CMakeLists.txt`/`Makefile`/`.uvprojx`/`platformio.ini`)已经透露了构建系统与目录结构;agent 应主动读出来预填,把用户的交互负担降到最低。探测结果写入 manifest 前必须确认,不擅自定论外部事实。除构建事实外,还有四类**写一次、常驻受益**的信息必须在初始化时奠基:① 场景,② 注入通道,③ 路径纪律,④ **自主协作边界**(主动只读复审、worker 后置、Git 确认门,见 `../hecateflow/references/orchestration-contract.md`)。
 
 ## 红线
 
@@ -62,12 +63,13 @@ metadata:
    - 是 → `clangd:true` + 追问 `configStyle`:优先 `compile_commands.json`(CMake/bear 自动生成,免手维护 `-I`)/ `.clangd-manual-I`(手维护 `-I`)/。`hf-build-sync` 据此决定是否成对维护 LSP 配置。
    - 否 → `clangd:false`,后续构建同步跳过所有 `-I`/`.clangd` 步骤。
 7. **Git**:提交格式、远端(多远端则全列,提交后须全推)、默认分支;`neverAddAll` 恒 true。
-8. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`factConfirmation`/`lessonsCapture`)。
+8. **自主协作与 Git 确认门(点 26)**:写入 `interaction.defaultMode` / `subagentDelegation` / `batchImplementationGate` / `gitConfirmationGate`;`git.confirmationRequired:true`,`git.autoCommitPush:false`。默认自主只读探索,L1-L3 主动派发只读子代理,实现请求进入主 agent 可写流程,worker/Git 不得越权。
+9. **文档与检查**:文档纲领位置;共享库版本表/术语/引脚表(可空);激活哪些 `activeChecks`(默认全开,含 `polarityMagnitude`/`relativePaths`/`ioOwnership`/`factConfirmation`/`lessonsCapture`)。
 
 ### 第三阶段:生成与搭建(写)
 
 9. **写 manifest**:用 `../hecateflow/templates/manifest.json` 为骨架,填好后写 `.hecateflow/project.json`(读-改-写 + 按 `../hecateflow/references/manifest-schema.md` 校验)。**`paths.preferRelative:true`、所有路径字段填工作区相对路径**。
-10. **生成开发纲领**:用 `../hecateflow/templates/workspace-guide.md.tmpl` 生成 `CLAUDE.md`(若已存在则只补 manifest 与镜像登记,不覆盖);填入第 5 步的场景作"架构总览/约束"段。
+10. **生成开发纲领**:用 `../hecateflow/templates/workspace-guide.md.tmpl` 生成 `CLAUDE.md`(若已存在则只补 manifest 与镜像登记,不覆盖);填入第 5 步的场景作"架构总览/约束"段,并写入"协作与 Git 确认门"章节。
 11. **搭建自动注入(点 9 → `autoInjection`,引 `../hecateflow/references/auto-injection.md`)**:
     - 写纲领入口 `CLAUDE.md` 与 `AGENTS.md`(同源镜像,含场景/target 识别/git 流程/相对路径纪律);登记 `mirrorPairs:[{a:"CLAUDE.md",b:"AGENTS.md"}]`。
     - 建 `.claude/rules/` 目录 + `README.md` 触发表(放场景化检查规则,分级见 `../references/tiered-docs.md`)。
@@ -88,6 +90,7 @@ metadata:
 - [ ] `buildSystem.type` 与 `autoDiscover` 经用户确认。
 - [ ] `workspace.scenario` 四项(domain/constraints/safetyRules/forbidden)经用户提供,未自行编造。
 - [ ] `workspace.lsp.clangd` 已**显式询问**并据答填 `configStyle`,未默认假定。
+- [ ] `interaction.*` 与 `git.confirmationRequired/autoCommitPush` 已写入,先自主求证、主动派发只读子代理、worker 后置、Git 确认门明确。
 - [ ] `autoInjection` 已搭建:写了 `CLAUDE.md`+`AGENTS.md`(镜像登记)、建了 `.claude/rules/` + 触发表;用 OpenCode 则 `instructions[]` 已登记。
 - [ ] `paths.preferRelative:true`;manifest 内所有路径为工作区相对,无绝对机器路径。
 - [ ] 探测到的值都以"推荐选项"呈现而非默认写入。
@@ -117,6 +120,6 @@ metadata:
 ## 参考
 
 - `../hecateflow/templates/manifest.json`、`../hecateflow/templates/workspace-guide.md.tmpl`、`../hecateflow/references/manifest-schema.md`。
-- `../hecateflow/references/auto-injection.md`(自动注入搭建步骤 + 镜像约束 + 各 CLI 对照)。
+- `../hecateflow/references/auto-injection.md`(自动注入搭建步骤 + 镜像约束 + 各 CLI 对照)、`../hecateflow/references/orchestration-contract.md`(协作权限边界)。
 - `../references/tiered-docs.md`(分级文档,决定 `.claude/rules/` 放什么)、`../references/git-discipline.md`(git 约定写入)。
 - `hf-init-project`(下一步:每 target 跑一次)、`hf-build-sync`(读 `workspace.lsp.clangd`)、`hf-doc-discipline`(维护注入)。

@@ -1,6 +1,6 @@
 # 规则/skill 自动注入机制 / Auto-injection (reference)
 
-> `hf-init-workspace` 搭建、`hf-doc-discipline` 维护的参考。目标:让目标工作区的**规则与 skill 在各 CLI 里被自动加载/发现/调用**,而不是靠人每次手动 `@` 引用。
+> `hf-init-workspace` 搭建、`hf-doc-discipline` 维护的参考。目标:让目标工作区的**规则与 skill 在各 CLI 里被自动加载/发现/调用**,并让自主性优先多模型编排与 Git 确认门成为冷启动默认约束,而不是靠人每次手动 `@` 引用。
 > 对应经验点 9。配套 manifest 字段:`autoInjection{instructionsFiles[],mirrorPairs[],hooks}`。
 
 ## 第一性原则
@@ -10,6 +10,8 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 1. **入口文件常驻注入**:`CLAUDE.md` / `AGENTS.md` 在每次会话开头进上下文(harness 原生)。纲领级行为规则放这里。
 2. **instructions 列表注入**:OpenCode `opencode.json` 的 `instructions[]` 把列出的规则文件自动拼进系统提示。细分技术规则放 `.claude/rules/*.md` 并登记到此列表。
 3. **skill description 关键词发现**:skill 的 frontmatter `description` 含触发关键词,agent 命中场景时自动调用。场景化能力做成 skill(本仓即 HecateFlow 自身)。
+
+纲领入口必须包含 `orchestration-contract.md` 的最小语义:先自主求证、最小提问、主 agent 持权、主动派发只读子代理、高风险复审链、写入 worker 后置受限、Git 永不下放且等待用户确认。
 
 ## 各 CLI 注入方式对照
 
@@ -36,10 +38,10 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 
 ## 搭建步骤(hf-init-workspace 执行)
 
-1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `../templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、git 流程、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
+1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `../templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、自主性优先多模型编排、Git 确认门、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
 2. **建规则目录**:`.claude/rules/`,放分级文档(见 `../../references/tiered-docs.md`)与场景化检查规则;建 `README.md` 触发表。
 3. **建 instructions 列表**:若用 OpenCode,生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
-4. **Claude Code / Qoder hook**:HecateFlow 安装器默认把 `PostToolUse` hook 写入 `~/.claude/settings.json` 与已初始化的 `~/.qoder-cn/settings.json`/`~/.qoder/settings.json`,在 `Write`/`Edit`/`MultiEdit`/`create_file`/`search_replace` 后注入 `hf-auto-workflow` 提醒;登记到 `autoInjection.hooks`。无 hook 的 CLI 退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(Codex/Reasonix 即此模式,见 `hf-auto-workflow`)。QoderCN CLI 可用 `qodercncli --with-claude-config` 做 Claude Code 兼容层只读验证。
+4. **Claude Code / Qoder hook**:HecateFlow 安装器默认把 `PostToolUse` hook 写入 `~/.claude/settings.json` 与已初始化的 `~/.qoder-cn/settings.json`/`~/.qoder/settings.json`,在 `Write`/`Edit`/`MultiEdit`/`create_file`/`search_replace` 后注入 `hf-auto-workflow` 提醒;高风险变更要求按编排契约升级只读复审或 `hf-review`,且不得自动提交;登记到 `autoInjection.hooks`。无 hook 的 CLI 退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(Codex/Reasonix 即此模式,见 `hf-auto-workflow`)。QoderCN CLI 可用 `qodercncli --with-claude-config` 做 Claude Code 兼容层只读验证。
 5. **校验注入闭环**:新会话能否在不手动 `@` 的情况下命中规则。验证法:让 agent 描述"编辑某 `.c` 前要做什么",应自动复述 auto-workflow 步骤。
 
 ## 反面教训
@@ -48,10 +50,12 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 - **CLAUDE.md 改了不同步 AGENTS.md** → 换个 CLId 行为漂移,跨 agent 协作时一个 agent 守规则另一个不守。
 - **只靠 hook 强约束** → 换到无 hook 的 CLI 规则落空。hook 是增强不是唯一依赖;核心约束必须同时存在于"文档命令"层(任何 CLI 都读文档)。
 - **skill `description` 不含触发关键词** → 永不被自动发现,只能手动调。description 必须中英双语关键词覆盖典型用户措辞。
+- **只在一个 skill 里写 Git 确认门** → 入口文件或另一个 CLI 没看到规则时可能自动 stage / commit / push。Git 确认门必须出现在纲领入口、manifest、skill 红线和 hook 提醒里。
 
 ## 参考
 
 - manifest 字段:`manifest-schema.md` 的 `autoInjection`
+- 编排契约:`orchestration-contract.md`
 - 分级文档:`../../references/tiered-docs.md`
 - git 纪律:`../../references/git-discipline.md`
 - 维护责任:`hf-doc-discipline`、`hf-init-workspace`

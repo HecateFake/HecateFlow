@@ -48,10 +48,13 @@ Changed path(s):
 {path_text}
 
 If the edit touched embedded source, headers, build config, linker config, hardware mapping, config headers, or target documentation, immediately run or explicitly account for `hf-auto-workflow` before continuing:
+- autonomously inspect available evidence first; do not ask the user for facts discoverable from files, manifest, docs, diff, or commands;
 - confirm target and file semantics;
 - scan ISR/volatile/numeric safety/actuator clamps;
 - check relative paths and build registration;
 - check polarity, magnitude, IO ownership, driver owner, fact confirmation, and lessons triggers when relevant;
+- if risk is L1-L3, follow the HecateFlow orchestration contract: proactively use read-only review or hf-review when available, then have the main agent verify key evidence;
+- never stage, commit, or push automatically; report Git suggestions first and wait for user confirmation;
 - summarize as `HecateFlow Auto`.
 
 If the changed file is outside HecateFlow's scope, state that the hook is a no-op for this edit.

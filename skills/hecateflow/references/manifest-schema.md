@@ -139,11 +139,17 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
     "commitFormat": "string",    // 如 "<scope>: <desc>" 或 "AIG_<scope>_<desc>"
     "remotes": ["origin"],       // 多远端则多项(双推等);提交后须推全部远端
     "defaultBranch": "main",
-    "neverAddAll": true          // 只 add 本次编辑文件,禁止 git add .(见 references/git-discipline.md)
+    "neverAddAll": true,         // 只 add 本次编辑文件,禁止 git add .(见 references/git-discipline.md)
+    "confirmationRequired": true,// 完成实现/验证后必须等用户明确确认才 stage/commit/push
+    "autoCommitPush": false      // 禁止自动提交/自动推送;子代理/worker 永不拥有 Git 写权限
   },
 
   "interaction": {
-    "askUserQuestionSchema": "questions[]{question,header,options}"
+    "askUserQuestionSchema": "questions[]{question,header,options}",
+    "defaultMode": "autonomous read-only investigation and review first; ask only about external unverifiable facts, safety boundaries, hardware/physical risk, write-worker scope escalation risk, and Git/remote history changes; when the user explicitly asks to implement/modify/land/apply a patch, the main agent may write within scope",
+    "subagentDelegation": "follow the installed HecateFlow orchestration-contract; proactively delegate read-only subagents by complexity with no extra user confirmation; high-risk conclusions need review-subagent + main-agent verification",
+    "batchImplementationGate": "write-capable workers only after the user has explicitly asked to implement/modify/land/apply a patch (用户已明确要求实现/修改/落地/应用补丁), research, determined plan, disjoint ownership, explicit worker boundaries; read-only planning/review cannot use write workers merely because research is sufficient; never stage/commit/push",
+    "gitConfirmationGate": "report summary/tests/suggested commit message/files-to-stage first; stage/commit/push only after explicit confirmation for the current change set"
   }
 }
 ```
@@ -161,8 +167,13 @@ HecateFlow 的"持久化交互记忆"。放在**目标工作区根目录**的 `.
 | `lessons` | 3 & 7 自进化/不再犯 | hf-lessons | 全部(编辑前检索) |
 | `autoInjection` | 9 自动注入 | hf-init-workspace | hf-doc-discipline |
 | `activeChecks.factConfirmation` | 25 事实来源二次确认 | hf-init-workspace | hf-auto-workflow / hf-review / hf-implement |
+| `interaction.defaultMode` | 26 自主只读探索 + 实施模式分离 | hf-init-workspace | hecateflow / hf-design-module / hf-implement |
+| `interaction.subagentDelegation` | 26 主动派发只读子代理 + 复审链 | hf-init-workspace | hf-review / hf-refactor / hf-auto-workflow |
+| `interaction.batchImplementationGate` | 26 写入 worker 后置门 | hf-init-workspace | hf-implement |
+| `interaction.gitConfirmationGate` | 26 Git 确认门 | hf-init-workspace | hf-implement / hf-review / hecateflow |
+| `git.confirmationRequired` / `git.autoCommitPush` | 26 Git 确认门 | hf-init-workspace | hf-implement / hf-review / hecateflow |
 
-> 详细机制见 `auto-injection.md`(注入)、`../../references/git-discipline.md`(git)、`../../references/tiered-docs.md`(分级文档)。
+> 详细机制见 `auto-injection.md`(注入)、`orchestration-contract.md`(自主性优先编排)、`../../references/git-discipline.md`(git)、`../../references/tiered-docs.md`(分级文档)。
 
 ## 最小可用清单
 

@@ -23,6 +23,17 @@
 
 复用优先级:① 本仓已有库/抽象 → ② 现成外部库 → ③ 新建可复用库(对象式 Init/Update/Reset)。
 
+## 协作分档 / 只读调研 / 复审计划
+
+- 自主性分档:{{AUTONOMY_LEVEL}}(A0 自主发现;A1 主动只读增智;A2 自主实施准备;A3 必须确认)。
+- 复杂度分档:{{ORCHESTRATION_LEVEL}}(L0 主 agent 自查;L1 自动派只读 reviewer;L2 explorer / architect / reviewer 并行;L3 多路只读 + 复审子代理 + 主 agent 亲验)。
+- 只读调研计划:{{READ_ONLY_RESEARCH_PLAN}}(主动派发,不需额外用户确认)
+- 复审链目标:{{REVIEW_CHAIN_TARGETS}}(检查证据充分性、矛盾、过度推断)。
+- 主 agent 亲验点:{{MAIN_AGENT_VERIFICATION}}(grep / 读码 / 只读命令确认关键证据)。
+- 写入 worker 候选文件范围:{{WORKER_FILE_SCOPE}};仅在用户已明确要求实现/修改/落地/应用补丁、方案确定、文件范围互斥且 worker 边界明确时启用 worker。
+- 最小提问点:{{MINIMAL_QUESTIONS}}(仅列仓库内无法自主证明的问题;类别限定为外部不可证事实、安全边界、硬件/物理风险、写入 worker 越权风险、Git/远端历史变更)
+- worker 禁止事项:不得扩范围、不得改接口外契约、不得 stage / commit / push。
+
 ## 接口设计(对象式)
 
 ```c

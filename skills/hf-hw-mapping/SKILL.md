@@ -20,7 +20,7 @@ metadata:
 
 # hf-hw-mapping — 硬件映射 / 极性 / 数量级 / Hardware Mapping, Polarity & Magnitude
 
-嵌入式工程里**最贵的 bug 不在算法,而在"引脚散落、极性藏错地方、增益量纲混用、驱动 owner 多头管理"**。这些事实一旦在源码里随处硬编码/多处 owner 管理,换一次接线、改一次车体或替换一次驱动就要全工程翻找,还容易引入竞态、生命周期混乱,并在大电流执行器上酿成物理事故。本 skill 把它们固化为可复用的工程纪律:**头文件分层组织、极性单一真相源、数量级理智检查、代码级驱动单一所有者**,并定义 agent 在触及这些点时的**主动提醒-确认**义务。被 `hf-init-project`(脚手架)、`hf-design-module`(放置/检查)、`hf-auto-workflow`/`hf-embedded-safety`(审查)引用,也可单独调用("帮我把引脚集中""这个极性该放哪""这个驱动该归谁管")。
+嵌入式工程里**最贵的 bug 不在算法,而在"引脚散落、极性藏错地方、增益量纲混用、驱动 owner 多头管理"**。这些事实一旦在源码里随处硬编码/多处 owner 管理,换一次接线、改一次车体或替换一次驱动就要全工程翻找,还容易引入竞态、生命周期混乱,并在大电流执行器上酿成物理事故。本 skill 把它们固化为可复用的工程纪律:**头文件分层组织、极性单一真相源、数量级理智检查、代码级驱动单一所有者**,并定义 agent 在触及这些点时先自主查证、再对外部物理事实最小确认。高风险硬件事实改动按 `../hecateflow/references/orchestration-contract.md` 主动做只读复核与复审链。被 `hf-init-project`(脚手架)、`hf-design-module`(放置/检查)、`hf-auto-workflow`/`hf-embedded-safety`(审查)引用,也可单独调用("帮我把引脚集中""这个极性该放哪""这个驱动该归谁管")。
 
 ## 适用 / 不适用
 
@@ -201,6 +201,12 @@ agent **触及以下任一**时,**不得静默改动、不得自行假定极性*
 - [ ] **闭环极性核查**:基于用户确定的映射,已主动核查闭环为负反馈(Kp×反馈斜率<0、各级无隐藏取反、Kp 全正),映射与代码矛盾处已指出。
 - [ ] **主动确认**:触及极性/轴向/数量级时,回复中已显式请用户核实物理事实,未自行假定极性。
 
+## 协作编排
+
+- 极性/闭环/执行器/驱动 owner 改动默认按 L2 高风险处理:必须自动多路只读查代码路径、参数源、owner 边界,再由复审子代理核证据充分性、矛盾和过度推断,最后主 agent 亲验裁决。
+- 把藏 Kp 的极性搬回 §极性段属于改行为重构:必须走 `hf-refactor` + `../hecateflow/references/orchestration-contract.md` 的只读对抗审查、复审链和主 agent 亲验。
+- 写入型 worker 只有在用户已明确要求实现/修改/落地/应用补丁,且主 agent 已吸收只读结论、方案完整、文件范围互斥后才可使用;用户确认物理事实只解除硬件事实不确定性,不等于写入授权。worker 不得擅自假定极性或执行 Git。
+
 ## 验证(agent 能做的 + 必须交给用户的)
 
 - agent 能做:静态判定头组织/极性归属/数量级量纲/驱动 owner、把散落引脚收进 pinMap、把藏 Kp 的极性搬回 §极性段(属改行为,须按 `hf-refactor` 对抗审查)、指出多头驱动状态/竞态风险并建议收敛为对象式 owner、登记 manifest、生成提醒文案。
@@ -217,7 +223,7 @@ agent **触及以下任一**时,**不得静默改动、不得自行假定极性*
 ## 平台差异
 
 - 主动提醒:Claude Code 在回复正文显式列"请确认 X";Codex 同。`activeChecks.polarityMagnitude`/`ioOwnership` 为 true 时,`hf-auto-workflow` 会在每次相关编辑后触发本提醒(Claude 端安装器默认写入 PostToolUse hook,Codex 端编辑后自律调用)。
-- 把藏 Kp 的极性搬回 §极性段属"改行为"重构,不能编译验证时派子代理对抗审查:Claude Code 用 `Task`(`subagent_type:"code-reviewer"`),Codex 在多代理工具可用且用户明确授权时用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent`,否则主会话按 `hf-refactor` 清单逐项自审并声明限制。
+- 把藏 Kp 的极性搬回 §极性段属"改行为"重构,无论能否编译都必须按 L2 主动派只读子代理对抗审查 + 复审链 + 主 agent 亲验;编译验证只是补充证据。Claude Code 用 `Task`(`subagent_type:"code-reviewer"`),Codex 在多代理工具可用时主动用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent`,无工具或宿主策略限制时主会话按 `hf-refactor` 清单逐项自审并声明平台限制。全部遵守 `../hecateflow/references/orchestration-contract.md`。
 - 命名风格(camelCase / snake_case)随 manifest 与既有代码,匹配周围代码胜过模板默认(见 `../references/embedded-c-style.md`)。
 
 ## 参考
@@ -228,5 +234,6 @@ agent **触及以下任一**时,**不得静默改动、不得自行假定极性*
 - `hf-init-project`(非扁平脚手架 + 生成 pinMap/config 头 + 初始化极性表 + 登记 ownedPeripherals)。
 - `hf-design-module`(新模块放置 + 极性/数量级/IO 归属检查点)、`hf-refactor`(极性搬迁的零行为变化对抗审查)。
 - `hf-auto-workflow`(每次编辑触发极性/数量级提醒)、`hf-doc-discipline`(参数表/持久化同步)。
+- `../hecateflow/references/orchestration-contract.md`(硬件高风险复审链 / worker 门 / Git 确认门)。
 - manifest 字段:`targets[].layout` / `targets[].headers{pinMap,configHeaders,polaritySource}` / `targets[].ownedPeripherals[]` / `activeChecks.polarityMagnitude`、`activeChecks.ioOwnership`(见 `../hecateflow/references/manifest-schema.md`)。
 - 源工程案例出处(只读):`core2_cyt4bb7/project/code/config/{pinMap.h,configMotor.h}`(`D:\car\iarCode\core` 工作区)。

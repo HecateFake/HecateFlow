@@ -1,7 +1,7 @@
 {
   "name": "hecateflow",
-  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills): interactive workspace/target init, incremental module design & implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate. v1.1 adds hardware-mapping headers with a single-source polarity/magnitude truth, a cross-platform lessons memory (record/recall/avoid/promote), tiered context-saving docs, auto-injection of rules/skills, clangd config management, multi-target IO-ownership planning, and relative-path discipline. Distilled from a real multi-core bare-metal C project.",
-  "version": "1.1.0",
+  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills): interactive workspace/target init, incremental design & implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate. v1.2 adds autonomy-first multi-model orchestration: self-verification first, proactive read-only subagents, review chains, write workers gated on the user explicitly asked to implement/modify/land/apply a patch (用户已明确要求实现/修改/落地/应用补丁), a determined plan, disjoint file scopes, and explicit worker boundaries; minimal questions limited to external unverifiable facts, safety boundaries, hardware/physical risk, write-worker scope escalation risk, and Git/remote history changes; and user-confirmed Git after summary/tests/suggested commit message/files-to-stage for the current change set. Distilled from a real multi-core bare-metal C project.",
+  "version": "1.2.0",
   "author": {
     "name": "Hecate",
     "url": "https://github.com/HecateFake"
@@ -27,7 +27,10 @@
     "clangd",
     "io-ownership",
     "relative-path",
-    "auto-injection"
+    "auto-injection",
+    "multi-agent",
+    "orchestration",
+    "git-confirmation"
   ],
   "skills": "./skills/"
 }

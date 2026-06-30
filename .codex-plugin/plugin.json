@@ -1,7 +1,7 @@
 {
   "name": "hecateflow",
-  "version": "1.1.0",
-  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills) distilled from a real multi-core bare-metal C project. v1.1 adds hardware-mapping headers with single-source polarity/magnitude truth, cross-platform lessons memory, tiered context-saving docs, auto-injection, clangd config management, multi-target IO-ownership planning, and relative-path discipline.",
+  "version": "1.2.0",
+  "description": "Reusable, MCU-agnostic embedded-development skill system (13 skills) distilled from a real multi-core bare-metal C project. v1.2 adds autonomy-first multi-model orchestration: self-verification first, proactive read-only subagents, review chains, gated write workers, and user-confirmed Git.",
   "author": {
     "name": "Hecate",
     "url": "https://github.com/HecateFake"
@@ -27,13 +27,16 @@
     "clangd",
     "io-ownership",
     "relative-path",
-    "auto-injection"
+    "auto-injection",
+    "multi-agent",
+    "orchestration",
+    "git-confirmation"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HecateFlow",
-    "shortDescription": "Embedded-dev lifecycle skills: init, design, implement, refactor, review, per-edit safety gate.",
-    "longDescription": "HecateFlow orchestrates the full embedded-development lifecycle with 13 interactive, MCU-agnostic skills: workspace and per-target initialization, incremental module design, incremental implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate (volatile/ISR/numeric/peripheral). v1.1 deepens the engineering discipline: hardware-mapping headers with a single-source polarity/magnitude truth (three direction-coefficient groups, open-loop identification, never hide polarity in a PID Kp sign), a cross-platform lessons memory under .hecateflow/lessons/ (record/recall/avoid/promote so the same mistake is not repeated), tiered context-saving docs, auto-injection so rules and skills are auto-discovered across CLIs, clangd config management, multi-target IO-ownership planning, and relative-path discipline. A persistent project manifest (.hecateflow/project.json) remembers your MCU family, toolchain, build system, targets, scenario constraints, and owned peripherals so skills only ask for what they don't already know.",
+    "shortDescription": "Embedded-dev lifecycle skills with autonomous discovery, proactive read-only subagents, gated workers, and Git confirmation.",
+    "longDescription": "HecateFlow orchestrates the full embedded-development lifecycle with 13 interactive, MCU-agnostic skills: workspace and per-target initialization, incremental module design, incremental implementation, behavior-preserving refactor, deep review, and an always-on per-edit safety gate (volatile/ISR/numeric/peripheral). v1.2 treats multi-model collaboration as autonomy-first authority partitioning, not extra writers: the main agent verifies discoverable facts before asking, keeps context, code ownership, and Git authority; read-only subagents are proactively delegated by complexity to explore, plan, review, and challenge evidence; high-risk conclusions pass through a review chain and main-agent verification; write-capable workers are delayed until the user has explicitly asked to implement/modify/land/apply a patch (用户已明确要求实现/修改/落地/应用补丁), the implementation plan is determined, file scopes are disjoint, and worker boundaries are explicit. A persistent project manifest (.hecateflow/project.json) remembers MCU family, toolchain, build system, targets, scenario constraints, owned peripherals, interaction defaults, and Git confirmation gates; minimal questions are limited to external unverifiable facts, safety boundaries, hardware/physical risk, write-worker scope escalation risk, and Git/remote history changes, and stage/commit/push require current-change-set confirmation after summary/tests/suggested commit message/files-to-stage.",
     "developerName": "Hecate",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],

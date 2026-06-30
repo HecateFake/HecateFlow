@@ -2,9 +2,10 @@
 name: hf-build-sync
 description: >
   新增源文件后,把它登记进不自动发现文件的构建系统(IAR .ewp、Keil .uvprojx、显式列源的
-  CMake/Make)与 LSP(clangd -I / compile_commands;先确认用户是否用 clangd)。漏登 → 链接期
+  CMake/Make)与 LSP(clangd -I / compile_commands;先从 manifest/compile_commands/.vscode/build config 自主发现是否使用 clangd)。漏登 → 链接期
   undefined reference 或编辑器虚假红线。构建/LSP 路径优先相对($PROJ_DIR$\.. 类),禁绝对机器路径。
-  MCU/工具链无关。触发:新增文件 / 加文件到工程 / undefined reference / 链接期未定义 /
+  MCU/工具链无关。构建图/LSP/多 target 同步属于高误判成本改动时,按自主性优先编排契约做主动只读复核。
+  触发:新增文件 / 加文件到工程 / undefined reference / 链接期未定义 /
   clangd 报错找不到头 / inline 重复定义 / 构建同步 / 相对路径 / IAR 加文件 / Keil 加文件 /
   CMake target_sources / 头文件找不到 / 没编进去 / build sync / register source file / add file to project。
 license: MIT
@@ -17,7 +18,7 @@ metadata:
 
 # hf-build-sync — 构建系统与 LSP 文件登记 / Build & LSP Registration
 
-很多嵌入式构建系统(IAR、Keil、显式列源的 CMake/Make)**不会自动发现**新源文件。只把 `.c/.h` 放进目录而不登记,会导致:调用新函数链接期 `undefined reference`;或根本没编译(调用点也没编),运行时功能静默缺失;或编辑器 clangd 找不到头文件报虚假红线。本 skill 在新增文件后立即补齐登记。
+很多嵌入式构建系统(IAR、Keil、显式列源的 CMake/Make)**不会自动发现**新源文件。只把 `.c/.h` 放进目录而不登记,会导致:调用新函数链接期 `undefined reference`;或根本没编译(调用点也没编),运行时功能静默缺失;或编辑器 clangd 找不到头文件报虚假红线。本 skill 在新增文件后立即补齐登记。构建图/LSP 同步一旦跨 target、跨模式或牵涉链接脚本,按 `../hecateflow/references/orchestration-contract.md` 做 L1-L3 分档:只读复核工程文件路径、include 路径、宏守卫和目标归属后再写;构建图/LSP/文档矩阵同时变化按 L3 闭合复审链。
 
 ## 适用 / 不适用
 
@@ -66,7 +67,7 @@ HecateFlow Build Sync:
 
 ## 执行流程
 
-1. 读 manifest `buildSystem`:`type` / `autoDiscover` / `registration.{projectFile,sourceNode,includePathField,lspConfig}`;并读 `workspace.lsp.clangd`——**用户是否用 clangd**(由 `hf-init-workspace` 初始化时询问并登记)。`clangd:false` → 只同步构建工程文件,跳过所有 `-I`/`.clangd` 步骤(无虚假红线困扰);`clangd:true` → 构建文件与 LSP 配置**成对同步**(见步 3 + `references/build-systems.md` clangd 六条)。
+1. 读 manifest `buildSystem`:`type` / `autoDiscover` / `registration.{projectFile,sourceNode,includePathField,lspConfig}`;并先从 `workspace.lsp.clangd`、`compile_commands.json`、`.clangd`、`.vscode/c_cpp_properties.json`、CMake/Make/IAR/Keil 工程配置里**自主发现**是否使用 clangd。`clangd:false` 或证据显示未用 → 只同步构建工程文件,跳过所有 `-I`/`.clangd` 步骤(无虚假红线困扰);`clangd:true` 或仓库内已有 clangd 配置 → 构建文件与 LSP 配置**成对同步**(见步 3 + `references/build-systems.md` clangd 六条)。只有仓库外 IDE 状态不可证、且会改变同步风险边界时,才最小提问。
 2. `autoDiscover=true` → 一般免登记;若是 CMake `file(GLOB)`,提醒需重新 configure(或加 `CONFIGURE_DEPENDS`)。
 3. `autoDiscover=false` → 按构建系统类型登记(详见 `references/build-systems.md`):
    - 把每个新 `.c`(和 `.h`)加进工程文件的源节点(IAR `<file>` / Keil `<File>` / CMake `target_sources` / Make `SRCS`)。
@@ -74,6 +75,15 @@ HecateFlow Build Sync:
 4. 实际编辑工程文件这一步由 `hf-implement` 落地(本 skill 产出"登记动作清单");单独调用时可直接给出 diff。
 5. **排"假未定义"**:遇 `undefined reference` / IAR 伪 `Li005 no definition` 时,除查登记,还要排两类**伪未定义**:① 链接脚本(`.icf`/`.ld`)注释含非 ASCII 致 ILINK 崩溃(看似缺符号,实为脚本编码;见 `hf-embedded-safety` + `../references/embedded-c-style.md`);② 多层模式宏守卫不对齐致该分支无定义(见红线)。
 6. 跑下方清单核对。
+
+## 协作编排
+
+- L0:单 target 单个新文件,主 agent 按清单自查即可。
+- L1:多文件或 include/LSP 同步,自动主动派至少一个只读 reviewer 核对路径和登记位置。
+- L2:跨 target、链接脚本、模式宏守卫、伪 undefined 排查,必须自动多路只读分工(构建图/LSP/模式宏或链接脚本)并由复审子代理核证据链;主 agent 亲验后才改工程文件。
+- L3:构建图、LSP、文档矩阵同时变化或多 target/多工具链同步时,必须先形成只读调研和计划,多路只读复核构建登记、索引配置、PROJECT/manifest 同步闭环,复审子代理查证据链后主 agent 才裁决。
+- 主 agent 降级自审只允许在平台/多代理工具不可用或宿主策略限制时使用,且必须声明限制;不得作为常规替代主动只读派发。
+- 任何子代理/worker 都不得 stage/commit/push;Git 走确认门。
 
 ## PASS/FAIL 清单
 
@@ -87,6 +97,7 @@ HecateFlow Build Sync:
 - [ ] 头里无裸 `inline`(改 `static inline` 或移 `.c`),未靠手工展开规避。
 - [ ] 多层模式宏的函数定义/调用守卫三处对齐,无某分支"编译却无定义"。
 - [ ] 排 `undefined`/伪 `Li005` 时已附带核对链接脚本 ASCII(交叉 `hf-embedded-safety`)。
+- [ ] 构建同步复杂度分档已完成;L1/L2/L3 的路径/目标归属、构建图/LSP/文档矩阵闭环经主动只读复核。仅在平台/工具不可用或宿主策略限制时,主 agent 才可降级自审并已声明限制。
 
 ## 验证
 
@@ -109,7 +120,8 @@ HecateFlow Build Sync:
 
 ## 参考
 
-- `references/build-systems.md`(IAR/Keil/CMake/Make/PlatformIO 逐个登记法 + **clangd 六条经验**:成对同步/深度分块 -I/优先 compile_commands/SDK 噪声 Suppress/跨 target 禁同步/PC 仿真独立 x86;含"先问用户是否用 clangd")。
+- `references/build-systems.md`(IAR/Keil/CMake/Make/PlatformIO 逐个登记法 + **clangd 六条经验**:成对同步/深度分块 -I/优先 compile_commands/SDK 噪声 Suppress/跨 target 禁同步/PC 仿真独立 x86;先读 manifest / compile_commands / `.vscode` / build config 自主发现 clangd,仅外部不可证或风险边界变化时最小提问)。
 - `../references/embedded-c-style.md`(`inline`→undefined 完整、ICF/链接脚本 ASCII 校验、相对路径优先)。
 - `hf-embedded-safety`(链接脚本非 ASCII 致伪 Li005——排"假未定义"的另一面)。
-- `hf-design-module`(切点清单含本步)、`hf-implement`(落地登记)、`hf-doc-discipline`(新文件登记到 PROJECT.md)、`hf-init-workspace`(初始化询问是否用 clangd → `workspace.lsp`)。
+- `hf-design-module`(切点清单含本步)、`hf-implement`(落地登记)、`hf-doc-discipline`(新文件登记到 PROJECT.md)、`hf-init-workspace`(初始化登记 clangd 使用状态 → `workspace.lsp`;缺失时本 skill 自主发现)。
+- `../hecateflow/references/orchestration-contract.md`(构建图/LSP 高误判成本时的只读复核与 Git 确认门)。

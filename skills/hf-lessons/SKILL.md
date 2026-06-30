@@ -18,7 +18,7 @@ metadata:
 
 # hf-lessons — 工程经验记忆 / 不再犯回路 / Lessons & Never-Repeat Loop
 
-无上下文的 agent 每次会话都从零开始,**最贵的代价是反复踩同一个坑**:这次会话学到"GBK 误读产生 U+FFFD 扫描漏判""极性藏 Kp 负号致失控""ICF 注释中文崩链接器",下次清空上下文换个 agent 又从头犯一遍。本 skill 把这些硬经验固化为**本地、跨平台、可检索的 lesson 文件**,并定义一条**升级阶梯**:从"记一条"到"编辑前检索规避",再到"升为规则/并入自动检查",让经验真正"不再犯",而不是停在一句口头总结。被 `hf-implement`(修 bug 时触发记录)、`hf-auto-workflow`(编辑后检索/记录)、`hf-doc-discipline`(衔接同步矩阵)引用,也可单独调用("把这个坑记下来""有没有相关教训")。
+无上下文的 agent 每次会话都从零开始,**最贵的代价是反复踩同一个坑**:这次会话学到"GBK 误读产生 U+FFFD 扫描漏判""极性藏 Kp 负号致失控""ICF 注释中文崩链接器",下次清空上下文换个 agent 又从头犯一遍。本 skill 把这些硬经验固化为**本地、跨平台、可检索的 lesson 文件**,并定义一条**升级阶梯**:从"记一条"到"编辑前检索规避",再到"升为规则/并入自动检查",让经验真正"不再犯",而不是停在一句口头总结。多模型协作事故(子代理越权、未复审、轻信转述、过度提问、未自主查证、Git 自动写入)也应按 `../hecateflow/references/orchestration-contract.md` 记录和升级。被 `hf-implement`(修 bug 时触发记录)、`hf-auto-workflow`(编辑后检索/记录)、`hf-doc-discipline`(衔接同步矩阵)引用,也可单独调用("把这个坑记下来""有没有相关教训")。
 
 ## 与 hf-doc-discipline 的边界(必读,勿重复)
 
@@ -67,6 +67,7 @@ metadata:
 - **被纠正(correction)**:用户纠正了你的做法(用错抽象、违反某约定、方向反了)。把"被纠正的点 + 正确做法"记下。`type: correction`。
 - **确认的好做法(good-practice)**:验证了一个有效模式(某重构手法、某调试切入点、某安全门控放置),值得下次复用。`type: good-practice`。
 - **事实来源被推翻(fallible-source)**:发现用户描述、SDK/provider 文档或实现、历史注释、既有代码、agent 先验中有任一项不可靠,且二次确认方法可复用。可记为 `type: pitfall` 或 `type: correction`,trigger 必含"不可能出现 / SDK 也可能错 / 二次确认 / 相关函数名"。
+- **协作编排失守(orchestration)**:子代理越权写文件、未复审就采信结论、过度提问、未自主查证、worker 跨范围、自动提交/推送、`git add .`、只读任务被实施化。`type: correction` 或 `pitfall`,trigger 必含"多模型 / 自主求证 / 子代理 / worker / Git 确认门 / orchestration"。
 
 判据:**这条经验下次相关编辑时若不想起来,会重新犯错或重新摸索吗?** 是 → 记;否(一次性/显而易见)→ 不记。
 
@@ -127,6 +128,7 @@ record → recall → avoid → promote
 - [ ] **根因到机制**:根因说清第一性机制,没停在"改一下就好了"的表象。
 - [ ] **规避可执行**:"如何避免"是具体动作(编辑前确认什么/改后跑什么),不是空泛原则。
 - [ ] **证据与二次确认写清**:用户/SDK/provider/历史注释/既有代码/agent 推断哪些被证实、哪些被推翻、哪些仍是假设,有"不可能出现"时记录二次确认动作。
+- [ ] **协作事故写清权限边界**:若 lesson 来自多模型/子代理问题,写明哪个角色越权、缺了哪段复审链或 Git 确认门,并引用 `../hecateflow/references/orchestration-contract.md`。
 - [ ] **升级路径已判**:每条标明"仅 lesson / 升 rule / 并入 auto-workflow",反复/多 target 的已升级并登记。
 - [ ] **去重**:同类已有 lesson 时更新而非新建;无重复文件。
 - [ ] **失效已清**:不再成立的 lesson 已标 superseded 或删除,未留误导。
@@ -147,6 +149,7 @@ record → recall → avoid → promote
 - **失效 lesson 误导**:某坑早已被重构根治,lesson 没删,新 agent 仍按它绕路做无用功甚至引入新问题。教训:代码演进时同步清理/标记失效 lesson(与 doc-discipline 同次提交校准同理)。
 - **只存 harness memory**:经验只写进 Claude 私有 memory,换到 Codex 后完全读不到,等于没记。教训:**本地 lessons 为唯一权威副本**,跨平台才是经验记忆的意义。
 - **不记权威偏差**:一次 bug 靠推翻"SDK 不会错/用户已经确认"才修好,但 lesson 只写最终补丁,没写事实二次确认链。下次遇到同类"不可能"描述仍会先入为主。教训:lesson 必须记录证据来源如何被验证。
+- **协作事故只口头提醒**:某次子代理越权写文件或主 agent 轻信 reviewer 结论,但没写 lesson 或升级规则,下一次全包重构又重复。教训:多模型编排失守同样是会复发的工程坑,应 record→recall→avoid→promote。
 
 ## 平台差异
 
@@ -163,5 +166,6 @@ record → recall → avoid → promote
 - `hf-implement`(修 bug 收尾触发记录)、`hf-auto-workflow`(编辑前检索 + 编辑后记录,`activeChecks.lessonsCapture`)。
 - `hf-hw-mapping`/`hf-embedded-safety`(极性/数量级/IO 归属类 lesson 的"升级去向"常落在这两个 skill 引用的规则段)。
 - 升级注入:`../hecateflow/references/auto-injection.md`;同次提交纪律:`../references/git-discipline.md`。
+- 编排契约:`../hecateflow/references/orchestration-contract.md`(协作事故的权限边界与升级目标)。
 - manifest 字段:`lessons.dir` / `lessons.index` / `activeChecks.factConfirmation` / `activeChecks.lessonsCapture`(见 `../hecateflow/references/manifest-schema.md`)。
 - 源工程经验记忆形态参考(只读出处):`D:\car\iarCode\core` 工作区的 harness memory(`iar-icf-ascii-only`、`core2-motor-runaway-protection` 等条目即 type/trigger + 症状/根因/如何避免 的实际写法)。

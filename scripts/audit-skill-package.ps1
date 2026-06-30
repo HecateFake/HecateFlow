@@ -55,6 +55,51 @@ function Get-HecateFlowFiles($Root) {
     return $files
 }
 
+function Get-StaleStringFiles($Root) {
+    $files = @()
+    $files += @(Get-HecateFlowFiles $Root)
+
+    foreach ($rel in @('README.md','install.ps1','install.sh','hecateflow\README.md')) {
+        $path = Join-Path $Root $rel
+        if (Test-Path -LiteralPath $path) {
+            $files += Get-Item -LiteralPath $path
+        }
+    }
+
+    foreach ($dirName in @('docs','templates','.codex-plugin','.claude-plugin','hecateflow\templates','hecateflow\docs')) {
+        $dir = Join-Path $Root $dirName
+        if (Test-Path -LiteralPath $dir) {
+            $files += Get-ChildItem -LiteralPath $dir -Recurse -File -Include '*.md','*.tmpl','*.json'
+        }
+    }
+
+    foreach ($scriptDirName in @('skills\hecateflow\scripts','hecateflow\scripts')) {
+        $scriptDir = Join-Path $Root $scriptDirName
+        if (Test-Path -LiteralPath $scriptDir) {
+            $files += Get-ChildItem -LiteralPath $scriptDir -Recurse -File -Include '*.ps1','*.sh'
+        }
+    }
+
+    return $files | Sort-Object FullName -Unique
+}
+
+function Test-TextContainsPatterns($Path, $Label, $Patterns) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Fail "$Label missing: $Path"
+    }
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    foreach ($pattern in $Patterns) {
+        if ($text -notmatch $pattern) {
+            Fail "$Label missing required orchestration semantic '$pattern': $Path"
+        }
+    }
+}
+
+function Test-OrchestrationExactGate($Path, $Label, $Options) {
+    Test-TextContainsPatterns $Path $Label $Options.Required
+}
+
 function Test-PackageRefs($Root, [switch]$SourceLayout) {
     $files = Get-HecateFlowFiles $Root
 
@@ -69,7 +114,7 @@ function Test-PackageRefs($Root, [switch]$SourceLayout) {
                 $raw -match '^\.claude/' -or
                 $raw -match '^CLAUDE\.md$|^AGENTS\.md$|^README\.md$') { continue }
             if ($raw -match '[{}*<>]') { continue }
-            if ($raw -in @('PROJECT.md','INDEX.md','INTEGRATION_PLAN.md','LIBRARY_VERSIONS.md','compile_commands.json','opencode.json','settings.json')) { continue }
+            if ($raw -in @('PROJECT.md','INDEX.md','INTEGRATION_PLAN.md','LIBRARY_VERSIONS.md','compile_commands.json','opencode.json','settings.json','.vscode/c_cpp_properties.json')) { continue }
             if ($raw -match '^docs/' -and $file.Name -ne 'README.md') { continue }
 
             $candidate = Join-Path $dir $raw
@@ -135,10 +180,16 @@ function Test-StaleStrings($Root) {
         'multi_agent=true',
         '不支持外部 reference',
         'install 脚本会把 .*内联',
-        '≥0 targets'
+        '≥0 targets',
+        ('多代理工具可用且' + '用户明确授权'),
+        ('用户明确授权' + '时使用'),
+        ('只读' + '子代理.*' + '用户' + '授权'),
+        ('只读子代理需要' + '用户确认'),
+        ('用户' + '确认.*' + '只读'),
+        ('explicit user ' + 'authorization')
     )
 
-    $files = Get-HecateFlowFiles $Root
+    $files = Get-StaleStringFiles $Root
     $hits = @()
     foreach ($file in $files) {
         $text = Get-Content -LiteralPath $file.FullName -Raw
@@ -155,34 +206,262 @@ function Test-StaleStrings($Root) {
     }
 }
 
-function Test-InstalledHashes($SourceSkills, $InstalledRoot) {
-    $items = @(
-        'hecateflow\SKILL.md',
-        'hf-init-workspace\SKILL.md',
-        'hf-lessons\SKILL.md',
-        'hf-review\SKILL.md',
-        'hf-refactor\SKILL.md',
-        'hf-auto-workflow\SKILL.md',
-        'hf-embedded-safety\SKILL.md',
-        'hf-hw-mapping\SKILL.md',
-        'references\tiered-docs.md',
-        'hecateflow\scripts\claude-post-tool-use-auto-workflow.ps1',
-        'hecateflow\scripts\claude-post-tool-use-auto-workflow.sh',
-        'hecateflow\scripts\qoder-post-tool-use-auto-workflow.ps1',
-        'hecateflow\scripts\qoder-post-tool-use-auto-workflow.sh',
-        'hecateflow\references\codex-tools.md',
-        'hecateflow\references\auto-injection.md',
-        'hecateflow\references\manifest-schema.md'
+function Test-OrchestrationContractCoverage($Root) {
+    $sourceLayout = Test-Path -LiteralPath (Join-Path $Root 'skills\hecateflow\references\orchestration-contract.md')
+    $base = if ($sourceLayout) { Join-Path $Root 'skills' } else { $Root }
+    $contractPath = Join-Path $base 'hecateflow\references\orchestration-contract.md'
+
+    if (-not (Test-Path -LiteralPath $contractPath)) {
+        Fail "Orchestration contract missing: $contractPath"
+    }
+
+    $contractText = Get-Content -LiteralPath $contractPath -Raw
+    foreach ($needle in @('主 agent 持权','只读子代理','复审链','Git 确认门','L0','L1','L2','L3','先自主求证','最小提问','主动派发只读子代理','并发槽位','防止占满并发上限')) {
+        if ($contractText -notmatch [regex]::Escape($needle)) {
+            Fail "Orchestration contract missing required phrase '$needle': $contractPath"
+        }
+    }
+    Test-OrchestrationExactGate `
+        $contractPath `
+        'orchestration contract exact gate' `
+        @{ Required = @('安全边界','用户已明确要求实现/修改/落地/应用补丁','L2/L3 多路只读调研 \+ 复审子代理 \+ 主 agent 亲验','子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','不能把并发上限写成把只读派发转嫁给用户确认的理由') }
+
+    $skillDirs = @(
+        'hecateflow',
+        'hf-init-workspace',
+        'hf-init-project',
+        'hf-design-module',
+        'hf-implement',
+        'hf-review',
+        'hf-refactor',
+        'hf-auto-workflow',
+        'hf-embedded-safety',
+        'hf-hw-mapping',
+        'hf-build-sync',
+        'hf-doc-discipline',
+        'hf-lessons'
     )
 
+    $missing = @()
+    foreach ($dir in $skillDirs) {
+        $path = Join-Path $base (Join-Path $dir 'SKILL.md')
+        if (-not (Test-Path -LiteralPath $path)) {
+            $missing += [pscustomobject]@{ File = $path.Replace($Root + '\', ''); Problem = 'missing SKILL.md' }
+            continue
+        }
+        $text = Get-Content -LiteralPath $path -Raw
+        if ($text -notmatch 'orchestration-contract') {
+            $missing += [pscustomobject]@{ File = $path.Replace($Root + '\', ''); Problem = 'missing orchestration-contract reference' }
+        }
+    }
+
+    if ($missing) {
+        $missing | Format-Table -AutoSize
+        Fail "Orchestration contract SKILL coverage failed for $Root"
+    }
+
+    if ($sourceLayout) {
+        foreach ($exactCheck in @(
+            [pscustomobject]@{
+                Path = Join-Path $Root 'docs\methodology.md'
+                Label = 'methodology exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','主动只读并行,但管理并发槽位','防止占满并发上限')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hecateflow\SKILL.md'
+                Label = 'hecateflow entry exact gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','防止占满并发上限')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hecateflow\references\orchestration-contract.md'
+                Label = 'orchestration concurrency slot gate'
+                Required = @('子代理并发槽位纪律','关闭已完成','保留至少一个可用槽位','防止占满并发上限')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-design-module\SKILL.md'
+                Label = 'hf-design-module exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-implement\SKILL.md'
+                Label = 'hf-implement exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-hw-mapping\SKILL.md'
+                Label = 'hf-hw-mapping exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-build-sync\SKILL.md'
+                Label = 'hf-build-sync L3 orchestration gate'
+                Required = @('L1-L3 分档','L3:构建图、LSP、文档矩阵同时变化','L1/L2/L3')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hf-review\SKILL.md'
+                Label = 'hf-review concurrency slot gate'
+                Required = @('防止占满并发上限','保留复审槽位')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hecateflow\references\claude-code-tools.md'
+                Label = 'claude tools exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','并发槽位','防止占满并发上限')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'skills\hecateflow\references\codex-tools.md'
+                Label = 'codex tools exact worker gate'
+                Required = @('用户已明确要求实现/修改/落地/应用补丁','wait_agent','close_agent','防止占满并发上限')
+            }
+        )) {
+            Test-OrchestrationExactGate $exactCheck.Path $exactCheck.Label @{ Required = $exactCheck.Required }
+        }
+
+        $manifestPath = Join-Path $Root 'templates\manifest.json'
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if ($manifest.git.confirmationRequired -ne $true) {
+            Fail "manifest template must set git.confirmationRequired=true"
+        }
+        if ($manifest.git.autoCommitPush -ne $false) {
+            Fail "manifest template must set git.autoCommitPush=false"
+        }
+        foreach ($field in @('defaultMode','subagentDelegation','batchImplementationGate','gitConfirmationGate')) {
+            if (-not $manifest.interaction -or
+                -not ($manifest.interaction.PSObject.Properties.Name -contains $field) -or
+                [string]::IsNullOrWhiteSpace([string]$manifest.interaction.$field)) {
+                Fail "manifest template missing interaction.$field"
+            }
+        }
+        if ($manifest.interaction.subagentDelegation -notmatch 'proactively delegate read-only') {
+            Fail "manifest template interaction.subagentDelegation must proactively delegate read-only subagents"
+        }
+        if ($manifest.interaction.defaultMode -notmatch 'safety boundaries' -or
+            $manifest.interaction.defaultMode -notmatch 'write-worker scope escalation risk' -or
+            $manifest.interaction.defaultMode -notmatch 'user explicitly asks to implement/modify/land/apply a patch') {
+            Fail "manifest template interaction.defaultMode must include all minimal-question categories and explicit write-mode request wording"
+        }
+        if ($manifest.interaction.batchImplementationGate -notmatch 'user has explicitly asked to implement/modify/land/apply a patch') {
+            Fail "manifest template interaction.batchImplementationGate must require an explicit implementation/modify/land/patch request"
+        }
+        if ($manifest.interaction.gitConfirmationGate -notmatch 'summary/tests/suggested commit message/files-to-stage' -or
+            $manifest.interaction.gitConfirmationGate -notmatch 'current change set') {
+            Fail "manifest template interaction.gitConfirmationGate must require summary/tests/files-to-stage and current change-set confirmation"
+        }
+
+        $schemaPath = Join-Path $Root 'skills\hecateflow\references\manifest-schema.md'
+        $schemaText = Get-Content -LiteralPath $schemaPath -Raw
+        foreach ($field in @('git.confirmationRequired','git.autoCommitPush','interaction.defaultMode','interaction.subagentDelegation','interaction.batchImplementationGate','interaction.gitConfirmationGate')) {
+            if ($schemaText -notmatch [regex]::Escape($field)) {
+                Fail "manifest schema missing $field"
+            }
+        }
+
+        foreach ($pluginPath in @(
+            (Join-Path $Root '.codex-plugin\plugin.json'),
+            (Join-Path $Root '.claude-plugin\plugin.json')
+        )) {
+            $plugin = Get-Content -LiteralPath $pluginPath -Raw | ConvertFrom-Json -ErrorAction Stop
+            if ($plugin.version -ne '1.2.0') {
+                Fail "plugin version must be 1.2.0: $pluginPath"
+            }
+            $pluginText = Get-Content -LiteralPath $pluginPath -Raw
+            if ($pluginText -notmatch 'orchestration' -or $pluginText -notmatch 'git-confirmation' -or $pluginText -notmatch 'autonomy-first') {
+                Fail "plugin metadata must mention autonomy-first orchestration and git-confirmation: $pluginPath"
+            }
+        }
+
+        $readmePath = Join-Path $Root 'README.md'
+        $readmeText = Get-Content -LiteralPath $readmePath -Raw
+        if ($readmeText -notmatch 'v1\.2' -or $readmeText -notmatch 'orchestration-contract\.md' -or $readmeText -notmatch 'Git 确认门' -or $readmeText -notmatch '先自主求证') {
+            Fail "README must advertise v1.2 autonomy-first orchestration contract and Git confirmation gate"
+        }
+
+        Test-TextContainsPatterns `
+            (Join-Path $Root 'docs\methodology.md') `
+            'methodology doc' `
+            @('先自主求证','主动.*只读.*子代理','最小提问','安全边界','Git 确认门')
+
+        foreach ($templateCheck in @(
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\workspace-guide.md.tmpl'
+                Label = 'workspace-guide template'
+                Patterns = @('先自主求证','只读子代理.*主动派发','最小提问','安全边界','Git 确认门')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\module-design.md.tmpl'
+                Label = 'module-design template'
+                Patterns = @('自主性分档','只读调研计划.*主动派发','最小提问','安全边界','不得 stage / commit / push')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\integration-plan.md.tmpl'
+                Label = 'integration-plan template'
+                Patterns = @('先自主求证','主动派发只读子代理','最小提问','安全边界','Git 确认门')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\PROJECT.md.tmpl'
+                Label = 'PROJECT template'
+                Patterns = @('默认自主探索','主动派发.*只读','最小提问','安全边界','Git 确认门')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\lesson.md.tmpl'
+                Label = 'lesson template'
+                Patterns = @('协作事故','未自主查证','越权 worker','Git 确认门','复审链')
+            },
+            [pscustomobject]@{
+                Path = Join-Path $Root 'templates\lessons-index.md.tmpl'
+                Label = 'lessons-index template'
+                Patterns = @('协作事故','未自主查证','worker 越权','Git 确认门','复审链')
+            }
+        )) {
+            Test-TextContainsPatterns $templateCheck.Path $templateCheck.Label $templateCheck.Patterns
+        }
+
+        foreach ($hookPath in @(
+            (Join-Path $Root 'skills\hecateflow\scripts\claude-post-tool-use-auto-workflow.ps1'),
+            (Join-Path $Root 'skills\hecateflow\scripts\claude-post-tool-use-auto-workflow.sh'),
+            (Join-Path $Root 'skills\hecateflow\scripts\qoder-post-tool-use-auto-workflow.ps1'),
+            (Join-Path $Root 'skills\hecateflow\scripts\qoder-post-tool-use-auto-workflow.sh')
+        )) {
+            $hookText = Get-Content -LiteralPath $hookPath -Raw
+            if ($hookText -notmatch 'orchestration contract' -or $hookText -notmatch 'never stage, commit, or push automatically' -or $hookText -notmatch 'autonomously inspect available evidence') {
+                Fail "hook must mention autonomous inspection, orchestration escalation, and no automatic Git: $hookPath"
+            }
+        }
+    }
+}
+
+function Test-InstalledHashes($SourceSkills, $InstalledRoot) {
+    $items = @()
+
+    $sourceRoot = Split-Path -Parent $SourceSkills
+    foreach ($sourceFile in (Get-ChildItem -LiteralPath $SourceSkills -Recurse -File)) {
+        $skillRel = $sourceFile.FullName.Substring($SourceSkills.Length + 1)
+        $items += [pscustomobject]@{
+            Source = Join-Path 'skills' $skillRel
+            Installed = $skillRel
+        }
+    }
+
+    $templateRoot = Join-Path $sourceRoot 'templates'
+    if (Test-Path -LiteralPath $templateRoot) {
+        foreach ($template in (Get-ChildItem -LiteralPath $templateRoot -Recurse -File)) {
+            $templateRel = $template.FullName.Substring($templateRoot.Length + 1)
+            $items += [pscustomobject]@{
+                Source = Join-Path 'templates' $templateRel
+                Installed = Join-Path 'hecateflow\templates' $templateRel
+            }
+        }
+    }
+
     $diff = @()
-    foreach ($rel in $items) {
-        $src = Join-Path $SourceSkills $rel
-        $dst = Join-Path $InstalledRoot $rel
+    foreach ($item in $items) {
+        $srcRel = $item.Source
+        $dstRel = $item.Installed
+        $src = Join-Path $sourceRoot $srcRel
+        $dst = Join-Path $InstalledRoot $dstRel
         $srcHash = (Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash
         $dstHash = if (Test-Path -LiteralPath $dst) { (Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash } else { 'MISSING' }
         if ($srcHash -ne $dstHash) {
-            $diff += [pscustomobject]@{ Rel = $rel; SourceHash = $srcHash; InstalledHash = $dstHash }
+            $diff += [pscustomobject]@{ Rel = $dstRel; SourceHash = $srcHash; InstalledHash = $dstHash }
         }
     }
 
@@ -337,6 +616,7 @@ Write-Output 'Manifest template JSON OK'
 Test-Frontmatter $skillsRoot
 Test-PackageRefs $RepoRoot -SourceLayout
 Test-StaleStrings $RepoRoot
+Test-OrchestrationContractCoverage $RepoRoot
 Write-Output 'Source package checks OK'
 
 if (-not $SkipInstalled) {
@@ -351,6 +631,7 @@ if (-not $SkipInstalled) {
         }
         Test-PackageRefs $installedRoot
         Test-StaleStrings $installedRoot
+        Test-OrchestrationContractCoverage $installedRoot
         Test-InstalledHashes $skillsRoot $installedRoot
         Write-Output "Installed package checks OK: $installedRoot"
     }

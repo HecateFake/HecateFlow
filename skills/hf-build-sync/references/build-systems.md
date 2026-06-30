@@ -76,7 +76,7 @@ LSP:CMake 可生成 `compile_commands.json`(`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`
 
 ## LSP(clangd)经验(对应 S3 六条,点 10)
 
-**前置**:`hf-init-workspace` **主动询问用户是否用 clangd 补全/索引**。用则把配置方式记入 manifest `workspace.lsp{clangd:true,configStyle}`;不用则跳过本节(无虚假红线困扰,也无需维护 `-I`)。
+**前置**:`hf-init-workspace` 先从 manifest、`compile_commands.json`、`.clangd`、`.vscode/c_cpp_properties.json`、构建工程文件中自主发现是否使用 clangd 补全/索引;只有仓库外 IDE 状态不可证且会改变同步风险边界时才最小提问。用则把配置方式记入 manifest `workspace.lsp{clangd:true,configStyle}`;不用则跳过本节(无虚假红线困扰,也无需维护 `-I`)。
 
 无论构建系统如何,clangd 报"找不到头文件"的虚假红线或漏报时,六条经验:
 

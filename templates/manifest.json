@@ -75,9 +75,15 @@
     "commitFormat": "<scope>: <desc>",
     "remotes": ["origin"],
     "defaultBranch": "main",
-    "neverAddAll": true
+    "neverAddAll": true,
+    "confirmationRequired": true,
+    "autoCommitPush": false
   },
   "interaction": {
-    "askUserQuestionSchema": "questions[]{question,header,options}"
+    "askUserQuestionSchema": "questions[]{question,header,options}",
+    "defaultMode": "autonomous read-only investigation and review first; ask only about external unverifiable facts, safety boundaries, hardware/physical risk, write-worker scope escalation risk, and Git/remote history changes; when the user explicitly asks to implement/modify/land/apply a patch, the main agent may write within scope",
+    "subagentDelegation": "follow the installed HecateFlow orchestration-contract; proactively delegate read-only subagents by complexity with no extra user confirmation; high-risk conclusions require review-subagent review plus main-agent evidence verification",
+    "batchImplementationGate": "delegate write-capable workers only after the user has explicitly asked to implement/modify/land/apply a patch (用户已明确要求实现/修改/落地/应用补丁), sufficient research, a fully determined implementation plan, disjoint file ownership, and explicit worker boundaries; read-only planning/review never enables write workers merely because research is sufficient; workers stay within assigned files/scope and never stage, commit, or push",
+    "gitConfirmationGate": "after implementation and verification, report summary/tests/suggested commit message/files-to-stage only; stage/commit/push only after explicit user confirmation for the current change set"
   }
 }

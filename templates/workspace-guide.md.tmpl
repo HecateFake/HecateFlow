@@ -44,7 +44,17 @@
 - 提交格式:`{{COMMIT_FORMAT}}`。
 - 远端:{{REMOTES}};默认分支 {{DEFAULT_BRANCH}}。
 - 只显式 add 本次编辑文件,禁止 `git add .`。
+- 完成实现和验证后只先报告摘要(summary)、验证结果(tests)、建议提交说明(suggested commit message)和待暂存文件(files-to-stage);仅在用户对当前 change set 明确确认后才进入 stage / commit / push。
 
-## 7. 文档同步责任
+## 7. 协作与 Git 确认门
+
+- 默认模式:先自主求证。查看、审查、调研、计划、解释时自动读码/搜索/查 manifest/看 diff/跑只读命令;只有用户已明确要求实现/修改/落地/应用补丁才可写。
+- 多模型协作遵循 HecateFlow orchestration contract:主 agent 持有上下文、代码主权和裁决权;只读子代理按复杂度主动派发,无需额外确认;高风险结论先复审再由主 agent 亲验。
+- L1 及以上任务自动安排只读复核;跨 target / ISR / 协议 / 安全 / 行为保持重构按 L2/L3 走多路只读调研 + 复审链。
+- 写入 worker 只能在用户已明确要求实现/修改/落地/应用补丁后使用;还必须调研充分、方案确定、文件范围互斥且 worker 边界明确。只读规划/复审不能因为研究充分就使用写入 worker;若启用,必须限定文件、接口预期、验证方式和禁止事项。
+- 子代理和 worker 永不 stage / commit / push;Git 写流程只由主 agent 在用户确认当前 change set 后执行。
+- 最小提问:可从仓库/manifest/文档/命令发现的事实不问用户;只对外部不可证事实、安全边界、硬件/物理风险、写入 worker 越权风险和 Git/远端历史变更提问。
+
+## 8. 文档同步责任
 
 PROJECT.md 必须随代码同步(见 hf-doc-discipline)。下列变更须同提交更新对应 target 的 PROJECT.md:新增/删除/重命名模块文件、变更高危文件语义、新增/删除构建变体、修改边界约定(ISR 时序、关键参数、硬件接口)。

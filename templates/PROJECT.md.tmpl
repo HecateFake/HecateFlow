@@ -13,6 +13,15 @@
 | 活跃任务 | {{ACTIVE_TASK}} |
 | 已知坑 | {{KNOWN_PITFALLS}} |
 
+## 0. 协作边界
+
+- 默认自主探索:查看、审查、调研、计划、解释时先读码/搜索/查 manifest/看 diff/跑只读命令,不把可发现事实问给用户;只有用户已明确要求实现/修改/落地/应用补丁才进入可写模式。
+- 当前活跃 agent / 任务记录:{{ACTIVE_AGENT_TASKS}}。
+- 写入 worker 文件范围:{{WORKER_FILE_SCOPE}};只有用户已明确要求实现/修改/落地/应用补丁且方案确定、文件范围互斥、worker 边界明确时才可启用;只读规划/复审不能因为研究充分就使用写入 worker。
+- 高风险任务(ISR、跨核、协议、安全、行为保持重构、硬件 owner/极性):按 L2/L3 主动派发多路只读调研 + 复审子代理 + 主 agent 亲验。
+- 最小提问:只问外部不可证事实、安全边界、硬件/物理风险、写入 worker 越权风险和 Git/远端历史变更。
+- Git 确认门:子代理和 worker 永不 stage / commit / push;主 agent 完成验证后只先报告摘要(summary)、验证结果(tests)、建议提交说明(suggested commit message)和待暂存文件(files-to-stage);仅在用户确认当前 change set 后才 stage / commit / push。
+
 ## 1. 身份与定位
 
 - MCU / 架构:{{MCU}} / {{ARCH}}

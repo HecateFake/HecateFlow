@@ -3,7 +3,7 @@ name: hf-review
 description: >
   提交前的深度工程审查:比每次编辑的 auto-workflow 更深,跨范围聚合 ISR/数值/外设安全、死代码(复用感知)、
   文档同步、跨 target 一致性、硬件驱动 owner、事实来源二次确认、场景约束合规、lessons 覆盖,
-  必要时派子代理分维度对抗审查,产出分级问题报告
+  必要时按自主性优先编排契约主动派只读子代理分维度对抗审查 + 复审子代理核证据链,产出分级问题报告
   (CRITICAL/HIGH/MEDIUM)。触发:审查 / 审查工程 / 提交前检查 / 深度 review / 场景合规 / 多工程一致性 /
   安全审查 / 代码审查 / 帮我检查 / 提交前 review / 合并前检查 / 质量检查 /
   不可能出现 / SDK 也可能错 / 事实二次确认 /
@@ -18,7 +18,7 @@ metadata:
 
 # hf-review — 工程深度审查 / Deep Project Review
 
-`hf-auto-workflow` 是每次编辑的轻量门;`hf-review` 是提交前/阶段末的深度审查:跨整块改动或整个模块聚合问题,可派子代理分维度对抗审查。
+`hf-auto-workflow` 是每次编辑的轻量门;`hf-review` 是提交前/阶段末的深度审查:跨整块改动或整个模块聚合问题,按 `../hecateflow/references/orchestration-contract.md` 先自主求证并主动派只读子代理分维度对抗审查,高风险结论再由复审子代理核证据链,最后主 agent 亲验裁决。
 
 ## 适用 / 不适用
 
@@ -31,7 +31,7 @@ metadata:
 
 ## 第一性原则
 
-**深度审查 = 聚合 + 多维 + 对抗。** 单次编辑看不到的问题(跨函数的死代码、跨 target 不一致、整体文档漂移)只有在更大范围聚合时才显形;关键发现要用独立子代理从不同维度对抗验证,而非自证。
+**深度审查 = 聚合 + 多维 + 对抗 + 复审闭环。** 单次编辑看不到的问题(跨函数的死代码、跨 target 不一致、整体文档漂移)只有在更大范围聚合时才显形;关键发现要用独立子代理从不同维度对抗验证,再由复审子代理检查证据、矛盾和过度推断,不能自证。
 
 ## 审查维度
 
@@ -48,10 +48,12 @@ metadata:
 ## 执行流程
 
 1. 确定 scope(本次改动 / 整模块 / 整 target),读 manifest `activeChecks`。
-2. 逐维度扫描;复杂/高价值发现派子代理对抗复核(不同维度不同子代理)。
-3. 亲自 grep/读码复核子代理结论中"涉及删除/改行为"的关键点(不轻信转述)。
-4. 汇总分级报告:CRITICAL(安全/数据风险,阻塞)/ HIGH(bug/重大质量,应修)/ MEDIUM(可维护性,考虑)。
-5. CRITICAL/HIGH 给修复建议或直接修(交 `hf-implement`);静默忽略 LOW。
+2. 按 `orchestration-contract` 做 A0-A3 与 L0-L3 分档;L1+ 自动主动派只读子代理,L2/L3 派多个只读子代理分维度扫描。
+3. 派发前清理已完成/不再需要的子代理,按批次派发并保留复审槽位;`wait` 后吸收结论并及时 `close`,防止占满并发上限。
+4. 对 L2/L3 的关键 PASS/FAIL 结论、以及任何复杂/高价值发现,派复审子代理检查证据充分性、矛盾和过度推断;无发现也要复审抽查覆盖面。
+5. 亲自 grep/读码复核子代理结论中"涉及删除/改行为"的关键点(不轻信转述)。
+6. 汇总分级报告:CRITICAL(安全/数据风险,阻塞)/ HIGH(bug/重大质量,应修)/ MEDIUM(可维护性,考虑)。
+7. CRITICAL/HIGH 给修复建议或直接修(交 `hf-implement`);静默忽略 LOW。
 
 ## PASS/FAIL 清单(报告须覆盖)
 
@@ -63,7 +65,8 @@ metadata:
 - [ ] **事实来源 / 假设链**核过:用户、SDK/厂商、历史注释、既有代码、agent 推断均按证据分级;"不可能出现"类断言已二次确认,未被直接当作事实。
 - [ ] 构建/include/LSP/脚本无绝对机器路径。
 - [ ] **lessons 覆盖**:相关 lesson 规避动作已落实;本次新坑已记;可升级的已提示升级。
-- [ ] 关键发现经子代理对抗复核 + 亲验,非单方面判定。
+- [ ] 关键发现经只读子代理对抗复核 + 复审子代理核证据链 + 主 agent 亲验,非单方面判定;若 L2/L3 无发现,也已由复审子代理抽查覆盖面。
+- [ ] 子代理并发槽位已管理:完成/不再需要的代理已关闭,L2/L3 分批派发且保留复审槽位,未占满并发上限。
 - [ ] 问题按 CRITICAL/HIGH/MEDIUM 分级,各带依据与位置。
 
 ## 验证
@@ -83,10 +86,11 @@ metadata:
 
 ## 平台差异
 
-- 派子代理:Claude `Task`(可并行多维度);Codex 在多代理工具可用且用户明确授权时用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent`,否则主会话顺序审查并声明未做子代理对抗复核。
+- 派子代理:Claude `Task`(可并行多维度);Codex 在多代理工具可用时主动用 `multi_agent_v1.spawn_agent`→`multi_agent_v1.wait_agent`→`multi_agent_v1.close_agent` 派只读 reviewer / reviewer-of-review;无工具或宿主策略限制时主会话顺序审查并声明平台限制导致未做子代理对抗复核。子代理不得写文件或执行 Git,遵守 `../hecateflow/references/orchestration-contract.md`。
 
 ## 参考
 
 - `hf-embedded-safety`(安全)、`hf-hw-mapping`(极性/数量级/IO 归属/驱动 owner)、`hf-doc-discipline`(文档/版本登记)、`hf-lessons`(lessons 覆盖/升级)、`hf-refactor`(死代码/有意保留判定)。
 - `../references/embedded-c-style.md`、`../references/tiered-docs.md`(分级文档/多工程)、`../references/git-discipline.md`(相对路径)。
 - `hf-auto-workflow`(轻量版);manifest `workspace.scenario` / `activeChecks`(见 `../hecateflow/references/manifest-schema.md`)。
+- `../hecateflow/references/orchestration-contract.md`(分维度只读审查 / 复审链 / Git 确认门)。

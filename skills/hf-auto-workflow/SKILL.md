@@ -4,7 +4,7 @@ description: >
   每次编辑源文件后立即自动跑的轻量审查门:核心 6 步(目标确认 → volatile 扫描 → ISR 安全 → 数值安全 →
   风格 → 文档同步)+ 按 manifest activeChecks 激活的扩展检查(极性/数量级提醒确认、相对路径、IO 外设/驱动 owner 归属、
   事实来源二次确认、lessons 记录触发)。CRITICAL/HIGH 自动修,MEDIUM 列给用户,物理/归属/事实类显式请用户确认。是 HecateFlow 的
-  always-on 核心。HecateFlow 安装器会给 Claude Code 自动安装 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
+  always-on 核心,并按自主性优先编排契约对高风险改动升级主动只读复审或 hf-review。HecateFlow 安装器会给 Claude Code 自动安装 PostToolUse hook,Codex 端编辑后自律调用。触发:自动审查 / 编辑后检查 /
   auto workflow / post-edit review / 每次改完代码 / 改完帮我检查 / 轻量检查 / 极性提醒 /
   相对路径检查 / IO 归属 / 驱动 owner / 硬件驱动归属 / 不可能出现 / SDK 也可能错 / 事实二次确认 /
   lessons 记录 / after edit check / post tool review。
@@ -18,7 +18,7 @@ metadata:
 
 # hf-auto-workflow — 每次编辑自动审查门 / Per-Edit Auto-Review Gate
 
-HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 下的 `.c/.h` 等)后**立即、自动、无需用户提示**地跑 6 步审查。轻量、快、即时修——把问题挡在编辑当下,不攒到 review。
+HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 下的 `.c/.h` 等)后**立即、自动、无需用户提示**地跑 6 步审查。轻量、快、即时修——把问题挡在编辑当下,不攒到 review。若改动复杂度达到 `../hecateflow/references/orchestration-contract.md` 的 L1-L3,本 skill 先自主求证;L1 自动主动派至少 1 个只读 reviewer,L2/L3 自动多路只读分工 + 复审链或进入 `hf-review`,不把高风险结论压进单人自证。
 
 ## 适用 / 不适用
 
@@ -40,7 +40,8 @@ HecateFlow 的 always-on 核心。每次编辑嵌入式源文件(`project code` 
 3. 扫新增路径是否绝对路径,新增文件是否需要构建登记。
 4. 若触及极性/增益/IO 归属/硬件驱动 owner,明确请用户确认物理事实或 owner 边界,不自行假定。
 5. 若本次是 bug 修复或用户纠正,标出用户/SDK/注释/代码中哪些说法已证实,哪些仍是假设;遇"不可能出现"先二次确认。
-6. 输出一行摘要 + 下方简表。
+6. 做复杂度分档:L0 主 agent 本门自查;L1 立即派至少 1 个只读 reviewer;L2/L3 立即多路只读分工 + 复审链或进入 `hf-review`。
+7. 输出一行摘要 + 下方简表。
 
 ```text
 HecateFlow Auto:
@@ -51,6 +52,7 @@ HecateFlow Auto:
 - physical confirmations:
 - fact confirmations:
 - doc/build follow-up:
+- orchestration:
 ```
 
 ## 第一性原则
@@ -69,6 +71,14 @@ HecateFlow Auto:
 3. **数值安全**:除零保护缺失、整型可能溢出、PID 无积分限幅、执行器输出无钳位 → HIGH,自动修(委派 `hf-embedded-safety` 视角)。
 4. **风格**:命名/固定宽度类型/浮点 `f` 后缀/UTF-8 无 BOM/条件编译(见 `../references/embedded-c-style.md`)→ MEDIUM,提示不自动改。
 5. **文档同步**:触发同步的改动(模块增删/语义/参数/边界/共享库)而 PROJECT.md 没跟 → HIGH,提示补(委派 `hf-doc-discipline`)。
+
+### 第 0.5 步:协作分档(按 `orchestration-contract`)
+
+对本次编辑做 L0-L3 分档:
+
+- L0:主 agent 可在本门内完成自查。
+- L1:自动主动派至少 1 个只读 reviewer 查遗漏或风险;主 agent 亲验关键证据后裁决。
+- L2/L3:跨 target、ISR/volatile、协议、安全、删除、行为保持重构、规则治理、构建图/LSP/文档矩阵同时变化 → 自动多路只读分工(探索/架构/审查)并接复审链,或进入 `hf-review`;不得把未复审的高风险结论当已验证事实。
 
 ### 扩展检查(按 `activeChecks` 激活)
 
@@ -101,6 +111,7 @@ HecateFlow Auto:
 ## PASS/FAIL 清单
 
 - [ ] 核心 6 步 + 激活的扩展检查全跑过(未跳过激活项)。
+- [ ] 已做 L0-L3 协作分档;L1 已派至少 1 个只读 reviewer,L2/L3 已多路只读 + 复审链或进入 `hf-review`,未单人自证高风险结论。
 - [ ] CRITICAL/HIGH 已自动修,无遗留(含"极性藏 Kp 负号"这条 CRITICAL)。
 - [ ] 目标 target 与用户上下文一致(不符已停并问)。
 - [ ] 触及极性/轴向/数量级时已**显式请用户确认物理事实**,未自行假定极性。
@@ -114,7 +125,7 @@ HecateFlow Auto:
 
 ## 不做的事
 
-- 不触发 planner/architect 类重流程(轻量门)。
+- 不在轻量门内执行 planner/architect 类重流程;L1-L3 只做必要的只读 reviewer/复审链派发与结论记录,重流程交 `hf-review`。
 - 不在 `git commit` 时重复(编辑阶段已审)。
 - 不直接编辑 SDK/第三方库,也不做全量 SDK 审查;但本次修复依赖其行为时,必须读相关实现/文档/证据确认语义。不加 Doxygen 注释。
 
@@ -132,11 +143,12 @@ HecateFlow Auto:
 ## 平台差异
 
 - 自动触发:Claude PostToolUse hook 由 `install.ps1` / `install.sh` 默认安装;Codex 靠 prompt 自律(无 hook)。
-- 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载相关 skill,仅在多代理工具可用且用户明确授权时使用 `multi_agent_v1.spawn_agent`,否则主会话顺序执行。
+- 委派安全/文档/极性/lessons 检查:Claude `Skill`/`Task`;Codex 原生加载相关 skill,多代理工具可用时主动使用 `multi_agent_v1.spawn_agent` 派只读复核,无工具或宿主策略限制时主会话顺序执行并声明平台限制导致未做独立复核。全部委派遵守 `../hecateflow/references/orchestration-contract.md`。
 - 扩展检查的 hook 触发:`activeChecks.polarityMagnitude`/`ioOwnership`/`factConfirmation`/`lessonsCapture` 为 true 时,Claude 端 PostToolUse hook 会提示这些主动确认;Codex 端编辑后自律执行(见 `../hecateflow/references/auto-injection.md`)。
 
 ## 参考
 
 - `hf-embedded-safety`(安全门控/失控锁定/白名单 `#if`)、`hf-hw-mapping`(极性/数量级/IO 归属细节)、`hf-lessons`(记录/检索回路)、`hf-doc-discipline`(文档同步)。
 - `../references/embedded-c-style.md`(风格 + 路径纪律)、`../references/git-discipline.md`(相对路径与提交)、`../hecateflow/references/auto-injection.md`(hook/自律触发)。
+- `../hecateflow/references/orchestration-contract.md`(L0-L3 分档 / 复审链 / Git 确认门)。
 - `hf-implement`(每编辑后调本 skill)、`hf-review`(深度版)。

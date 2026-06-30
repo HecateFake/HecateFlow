@@ -30,7 +30,7 @@ metadata:
 
 ## 第一性原则
 
-**每个 target 是独立的认知单元,且它的"硬件契约"必须在第一天就被抽离集中。** 一个无上下文的 agent 应能只读该 target 的 PROJECT.md 就在其内独立工作;而引脚、极性、量纲、代码级驱动 owner 这类"硬件契约"若不在初始化时就抽进集中头/清单,后续每个模块都会就地硬编码或多头管理同一驱动状态,换接线/换车体/换驱动即全工程翻找,还会引入竞态和生命周期混乱,并可能在大电流执行器上酿成物理事故。所以初始化时必须同时明确:它是谁(职责)、它的代码怎么摆(非扁平布局)、它的硬件契约在哪(pinMap/config/极性表)、它独占什么 IO 外设(归属 + 分核规划)、哪些硬件驱动由哪个对象式 owner 模块负责、它有哪些同名异义高危文件。
+**每个 target 是独立的认知单元,且它的"硬件契约"必须在第一天就被抽离集中。** 一个无上下文的 agent 应能只读该 target 的 PROJECT.md 就在其内独立工作;而引脚、极性、量纲、代码级驱动 owner 这类"硬件契约"若不在初始化时就抽进集中头/清单,后续每个模块都会就地硬编码或多头管理同一驱动状态,换接线/换车体/换驱动即全工程翻找,还会引入竞态、生命周期混乱,并可能在大电流执行器上酿成物理事故。所以初始化时必须同时明确:它是谁、它怎么摆、硬件契约在哪、外设归谁、驱动 owner 谁管、哪些文件高危,以及本 target 内多 agent 协作如何遵守 `../hecateflow/references/orchestration-contract.md`:先自主求证、主动只读复审、最小提问、Git 确认门。
 
 ## 红线
 
@@ -56,7 +56,7 @@ metadata:
    - 用 `../hecateflow/templates/pinMap.h.tmpl` 生成 `config/pinMap.h`(零依赖纯 `#define`,按功能 `/* ===== 块 ===== */` 分组,命名 `{功能}_{通道}_{类型}`)。
    - 用 `../hecateflow/templates/config-header.h.tmpl` 生成 `config/configXxx.h`(分节 §A 时序/模式、§B/C/D 各环 PID 多实例独立增益、§E 几何+限幅+滤波、**§极性**、§F 故障/通信),头注写量纲约定。
    - **初始化极性表入硬件映射(点 11)**:在 configHeader §极性段为每路执行器/传感器通道生成方向系数宏(`*_OUTPUT_DIR`/`ENCODER_*_DIR`/`CURRENT_SENSE_*_DIR`/轴映射符号),占位 `+1`,并注释"开环实测辨识、换硬件重辨识、改前核实接线"。登记 `headers.polaritySource` = 该 configHeader 的 §极性段。**提示用户:这些 ±1 须上板辨识**(细节交 `hf-hw-mapping`,本 skill 只奠基占位)。
-5. **生成 PROJECT.md**:用 `../hecateflow/templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/代码级驱动 owner 清单/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/边界/ISR/参数/验证清单。
+5. **生成 PROJECT.md**:用 `../hecateflow/templates/PROJECT.md.tmpl` 填状态卡/身份/模块清单骨架/代码级驱动 owner 清单/高危文件/引脚总览(指向 `config/pinMap.h` + `docs/PINOUT`)/协作边界/边界/ISR/参数/验证清单。
 6. **登记 manifest `targets[]`**(读-改-写,只追加本项):`layout{style,subdirs}`、`headers{pinMap,configHeaders,polaritySource}`、`ownedPeripherals[]`、`hazardFiles`、`docPath`、`buildTarget`。
 7. **IO 外设冲突检查 + 分核规划提示(点 13)**:
    - 扫已登记 targets 的 `ownedPeripherals`,新 target 的独占外设 `device` 不得与他者 owner 冲突(同一物理外设两个 owner = 抢占风险)。
@@ -70,6 +70,7 @@ metadata:
 - [ ] §极性段为每路通道生成了方向系数宏(占位 +1),注释"须开环辨识/换硬件重辨识/改前核实接线";`headers.polaritySource` 已登记;已提示用户上板辨识。
 - [ ] 高危同名文件已列"本 target 含义"。
 - [ ] PROJECT.md 已留出代码级驱动 owner 清单(硬件实例 / owner 模块 / 对象式实例 / 访问方式),避免后续多头状态管理和竞态。
+- [ ] PROJECT.md 已写 target 内协作边界:先自主求证、主动只读复审、活跃任务记录、worker 范围互斥、Git 确认门。
 - [ ] 独占 IO 外设 owner 与已登记 target 无冲突;`io:true` 外设已 `planNote` 且**已提示分核任务规划**。
 - [ ] manifest `targets[]` 仅追加本项,未动其它项;路径全相对。
 - [ ] `docPath`/`buildTarget`/`headers.*` 与实际路径一致。
@@ -100,4 +101,5 @@ metadata:
 - `hf-hw-mapping`(头组织/极性单一真相源/数量级/IO 归属的完整方法论;本 skill 只做初始化奠基)。
 - `hf-embedded-safety`(IO 外设门控机制 + 失控保护)、`hf-build-sync`(新子目录的构建/LSP 同步)。
 - `hf-doc-discipline`(PROJECT.md 维护)、`hf-init-workspace`(上游;`workspace.lsp`/`scenario`/`layout` 默认来源)。
+- `../hecateflow/references/orchestration-contract.md`(target 内协作边界 / worker 门 / Git 确认门)。
 - manifest 字段:`targets[].layout`/`headers`/`ownedPeripherals[]`(见 `../hecateflow/references/manifest-schema.md`)。
