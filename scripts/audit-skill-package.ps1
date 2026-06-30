@@ -2,7 +2,8 @@ param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [string[]]$InstalledRoots = @(
         (Join-Path $env:USERPROFILE '.codex\skills'),
-        (Join-Path $env:USERPROFILE '.claude\skills')
+        (Join-Path $env:USERPROFILE '.claude\skills'),
+        (Join-Path $env:USERPROFILE '.agents\skills')
     ),
     [switch]$SkipInstalled
 )
@@ -167,6 +168,8 @@ function Test-InstalledHashes($SourceSkills, $InstalledRoot) {
         'references\tiered-docs.md',
         'hecateflow\scripts\claude-post-tool-use-auto-workflow.ps1',
         'hecateflow\scripts\claude-post-tool-use-auto-workflow.sh',
+        'hecateflow\scripts\qoder-post-tool-use-auto-workflow.ps1',
+        'hecateflow\scripts\qoder-post-tool-use-auto-workflow.sh',
         'hecateflow\references\codex-tools.md',
         'hecateflow\references\auto-injection.md',
         'hecateflow\references\manifest-schema.md'
@@ -189,6 +192,142 @@ function Test-InstalledHashes($SourceSkills, $InstalledRoot) {
     }
 }
 
+function Test-ReasonixConfig {
+    $configPath = Join-Path $env:APPDATA 'reasonix\config.toml'
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        Fail "Reasonix config missing: $configPath"
+    }
+
+    $lines = Get-Content -LiteralPath $configPath
+    $sectionStart = -1
+    $sectionEnd = $lines.Count
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s*\[skills\]\s*$') {
+            $sectionStart = $i
+            for ($j = $i + 1; $j -lt $lines.Count; $j++) {
+                if ($lines[$j] -match '^\s*\[') {
+                    $sectionEnd = $j
+                    break
+                }
+            }
+            break
+        }
+    }
+
+    if ($sectionStart -lt 0) {
+        Fail "Reasonix [skills] section missing: $configPath"
+    }
+
+    $section = ($lines[$sectionStart..($sectionEnd - 1)] -join "`n")
+    $expected = @(
+        '~/.agents/skills',
+        '~\.agents\skills',
+        (Join-Path $env:USERPROFILE '.agents\skills')
+    )
+
+    $matched = $false
+    foreach ($path in $expected) {
+        if ($section -match [regex]::Escape($path)) {
+            $matched = $true
+            break
+        }
+    }
+
+    if (-not $matched) {
+        Fail "Reasonix [skills].paths does not include .agents skills root: $configPath"
+    }
+
+    Write-Output "Reasonix config OK: $configPath"
+}
+
+function Test-QoderRootInitialized {
+    param([string]$Root)
+
+    if (-not (Test-Path -LiteralPath $Root)) { return $false }
+    foreach ($signal in @('settings.json','argv.json','extensions','memories','session-env','skills')) {
+        if (Test-Path -LiteralPath (Join-Path $Root $signal)) { return $true }
+    }
+    return $false
+}
+
+function Get-QoderInstalledRoots {
+    foreach ($root in @(
+        (Join-Path $env:USERPROFILE '.qoder-cn'),
+        (Join-Path $env:USERPROFILE '.qoder')
+    )) {
+        if (Test-QoderRootInitialized $root) {
+            Join-Path $root 'skills'
+        }
+    }
+}
+
+function Test-HecateFlowHookObject {
+    param([object]$Hook)
+
+    if ($null -eq $Hook) { return $false }
+    $command = ''
+    if ($Hook.PSObject.Properties.Name -contains 'command') {
+        $command = [string]$Hook.command
+    }
+    $joined = $command
+    if ($Hook.PSObject.Properties.Name -contains 'args' -and $null -ne $Hook.args) {
+        foreach ($arg in @($Hook.args)) {
+            $joined += " $arg"
+        }
+    }
+    return ($joined -match 'qoder-post-tool-use-auto-workflow' -or
+            $joined -match 'hf-auto-workflow' -or
+            $joined -match 'HecateFlow')
+}
+
+function Test-QoderHookConfig {
+    $qoderRoots = @(
+        (Join-Path $env:USERPROFILE '.qoder-cn'),
+        (Join-Path $env:USERPROFILE '.qoder')
+    ) | Where-Object { Test-QoderRootInitialized $_ }
+
+    foreach ($root in $qoderRoots) {
+        $settingsPath = Join-Path $root 'settings.json'
+        if (-not (Test-Path -LiteralPath $settingsPath)) {
+            Fail "Qoder settings missing: $settingsPath"
+        }
+
+        $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not $settings.hooks -or -not $settings.hooks.PostToolUse) {
+            Fail "Qoder PostToolUse hook missing: $settingsPath"
+        }
+
+        $found = $false
+        foreach ($entry in @($settings.hooks.PostToolUse)) {
+            $matcher = [string]$entry.matcher
+            $hasClaudeWrite = $matcher -match 'Write|Edit|MultiEdit'
+            $hasQoderWrite = $matcher -match 'create_file|search_replace'
+            foreach ($hook in @($entry.hooks)) {
+                if (-not (Test-HecateFlowHookObject $hook)) { continue }
+                if ($hook.command -isnot [string] -or [string]::IsNullOrWhiteSpace($hook.command)) {
+                    Fail "Qoder HecateFlow hook command must be a string: $settingsPath"
+                }
+                if ($hook.PSObject.Properties.Name -contains 'args' -and $null -ne $hook.args) {
+                    foreach ($arg in @($hook.args)) {
+                        if ($arg -isnot [string]) {
+                            Fail "Qoder HecateFlow hook args must be strings: $settingsPath"
+                        }
+                    }
+                }
+                if (-not $hasClaudeWrite -or -not $hasQoderWrite) {
+                    Fail "Qoder HecateFlow matcher must cover Claude and native write tools: $settingsPath"
+                }
+                $found = $true
+            }
+        }
+
+        if (-not $found) {
+            Fail "Qoder HecateFlow hook missing: $settingsPath"
+        }
+        Write-Output "Qoder hook config OK: $settingsPath"
+    }
+}
+
 $skillsRoot = Join-Path $RepoRoot 'skills'
 $manifestTemplate = Join-Path $RepoRoot 'templates\manifest.json'
 
@@ -201,7 +340,12 @@ Test-StaleStrings $RepoRoot
 Write-Output 'Source package checks OK'
 
 if (-not $SkipInstalled) {
-    foreach ($installedRoot in $InstalledRoots) {
+    $rootsToCheck = @($InstalledRoots)
+    if (-not $PSBoundParameters.ContainsKey('InstalledRoots')) {
+        $rootsToCheck += @(Get-QoderInstalledRoots)
+    }
+
+    foreach ($installedRoot in ($rootsToCheck | Sort-Object -Unique)) {
         if (-not (Test-Path -LiteralPath $installedRoot)) {
             Fail "Installed root missing: $installedRoot"
         }
@@ -210,6 +354,9 @@ if (-not $SkipInstalled) {
         Test-InstalledHashes $skillsRoot $installedRoot
         Write-Output "Installed package checks OK: $installedRoot"
     }
+
+    Test-ReasonixConfig
+    Test-QoderHookConfig
 }
 
 Write-Output 'HecateFlow skill package audit passed.'

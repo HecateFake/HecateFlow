@@ -1,9 +1,12 @@
 # HecateFlow installer (Windows / PowerShell)
-# 把 skills/ 安装到 ~/.claude/skills 与 ~/.codex/skills,模板随 hecateflow 入口捆绑。幂等。
+# 把 skills/ 安装到 Claude Code / Codex / Reasonix / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
 # 用法: pwsh -File install.ps1   或   ./install.ps1
 
 param(
-    [switch]$SkipClaudeHook
+    [switch]$SkipClaudeHook,
+    [switch]$SkipReasonix,
+    [switch]$SkipQoder,
+    [switch]$SkipQoderHook
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +18,29 @@ $targets = @(
     (Join-Path $env:USERPROFILE ".claude\skills"),
     (Join-Path $env:USERPROFILE ".codex\skills")
 )
+$reasonixRoot = Join-Path $env:USERPROFILE ".agents\skills"
+if (-not $SkipReasonix) {
+    $targets += $reasonixRoot
+}
+
+function Test-QoderRootInitialized {
+    param([string]$Root)
+
+    if (-not (Test-Path -LiteralPath $Root)) { return $false }
+    foreach ($signal in @('settings.json','argv.json','extensions','memories','session-env','skills')) {
+        if (Test-Path -LiteralPath (Join-Path $Root $signal)) { return $true }
+    }
+    return $false
+}
+
+$qoderRoots = @()
+if (-not $SkipQoder) {
+    $qoderRoots = @(
+        (Join-Path $env:USERPROFILE ".qoder-cn"),
+        (Join-Path $env:USERPROFILE ".qoder")
+    ) | Where-Object { Test-QoderRootInitialized $_ }
+    $targets += @($qoderRoots | ForEach-Object { Join-Path $_ "skills" })
+}
 
 $installed = @()
 
@@ -66,6 +92,7 @@ function Test-HecateFlowHook($Hook) {
 
     $joined = ($parts -join ' ')
     return ($joined -match 'claude-post-tool-use-auto-workflow' -or
+            $joined -match 'qoder-post-tool-use-auto-workflow' -or
             $joined -match 'hf-auto-workflow' -or
             $joined -match 'HecateFlow')
 }
@@ -135,6 +162,151 @@ function Install-ClaudeHook {
     Write-Output "[HecateFlow] Claude Code hook installed -> $settingsPath"
 }
 
+function Install-QoderHook {
+    param(
+        [string]$QoderRoot,
+        [string]$HookScript
+    )
+
+    $settingsPath = Join-Path $QoderRoot "settings.json"
+    New-Item -ItemType Directory -Force -Path $QoderRoot | Out-Null
+
+    $settings = [ordered]@{}
+    if (Test-Path -LiteralPath $settingsPath) {
+        Copy-Item -LiteralPath $settingsPath -Destination ($settingsPath + ".hecateflow-hook.bak") -Force
+        $raw = Get-Content -LiteralPath $settingsPath -Raw
+        if (-not [string]::IsNullOrWhiteSpace($raw)) {
+            $settings = ConvertTo-Hashtable ($raw | ConvertFrom-Json -ErrorAction Stop)
+        }
+    }
+
+    if (-not ($settings -is [System.Collections.IDictionary])) {
+        $settings = [ordered]@{}
+    }
+    if (-not $settings.Contains('hooks') -or $null -eq $settings['hooks'] -or
+        -not ($settings['hooks'] -is [System.Collections.IDictionary])) {
+        $settings['hooks'] = [ordered]@{}
+    }
+
+    $postToolUse = @()
+    if ($settings['hooks'].Contains('PostToolUse') -and $null -ne $settings['hooks']['PostToolUse']) {
+        $postToolUse = @($settings['hooks']['PostToolUse'])
+    }
+
+    $clean = @()
+    foreach ($entry in $postToolUse) {
+        if ($entry -isnot [System.Collections.IDictionary]) {
+            $clean += $entry
+            continue
+        }
+
+        $hooks = @()
+        if ($entry.Contains('hooks') -and $null -ne $entry['hooks']) {
+            $hooks = @($entry['hooks']) | Where-Object { -not (Test-HecateFlowHook $_) }
+        }
+
+        if ($hooks.Count -gt 0) {
+            $entry['hooks'] = @($hooks)
+            $clean += $entry
+        }
+    }
+
+    $hookCommand = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + $HookScript + '"'
+    $hookEntry = [ordered]@{
+        matcher = 'Write|Edit|MultiEdit|create_file|search_replace'
+        hooks = @(
+            [ordered]@{
+                type = 'command'
+                command = $hookCommand
+                timeout = 10
+            }
+        )
+    }
+
+    $settings['hooks']['PostToolUse'] = @($clean + $hookEntry)
+    $settings | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $settingsPath -Encoding utf8
+
+    Write-Output "[HecateFlow] Qoder hook installed -> $settingsPath"
+}
+
+function ConvertTo-TomlString($Value) {
+    return '"' + (($Value -replace '\\', '\\') -replace '"', '\"') + '"'
+}
+
+function Install-ReasonixConfig {
+    param([string]$SkillsRoot)
+
+    $reasonixDir = Join-Path $env:APPDATA "reasonix"
+    $configPath = Join-Path $reasonixDir "config.toml"
+    $skillPath = "~/.agents/skills"
+    New-Item -ItemType Directory -Force -Path $reasonixDir | Out-Null
+
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        @(
+            "[skills]",
+            "paths = [$((ConvertTo-TomlString $skillPath))]"
+        ) | Set-Content -LiteralPath $configPath -Encoding utf8
+        Write-Output "[HecateFlow] Reasonix skills path registered -> $configPath"
+        return
+    }
+
+    Copy-Item -LiteralPath $configPath -Destination ($configPath + ".hecateflow-skills.bak") -Force
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.AddRange([string[]](Get-Content -LiteralPath $configPath))
+
+    $sectionStart = -1
+    $sectionEnd = $lines.Count
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s*\[skills\]\s*$') {
+            $sectionStart = $i
+            for ($j = $i + 1; $j -lt $lines.Count; $j++) {
+                if ($lines[$j] -match '^\s*\[') {
+                    $sectionEnd = $j
+                    break
+                }
+            }
+            break
+        }
+    }
+
+    if ($sectionStart -lt 0) {
+        if ($lines.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($lines[$lines.Count - 1])) {
+            $lines.Add("")
+        }
+        $lines.Add("[skills]")
+        $lines.Add("paths = [$((ConvertTo-TomlString $skillPath))]")
+        Set-Content -LiteralPath $configPath -Value $lines -Encoding utf8
+        Write-Output "[HecateFlow] Reasonix skills path registered -> $configPath"
+        return
+    }
+
+    $pathsLine = -1
+    for ($i = $sectionStart + 1; $i -lt $sectionEnd; $i++) {
+        if ($lines[$i] -match '^\s*paths\s*=') {
+            $pathsLine = $i
+            break
+        }
+    }
+
+    if ($pathsLine -lt 0) {
+        $lines.Insert($sectionStart + 1, "paths = [$((ConvertTo-TomlString $skillPath))]")
+    } elseif ($lines[$pathsLine] -notmatch [regex]::Escape($skillPath) -and
+              $lines[$pathsLine] -notmatch [regex]::Escape($SkillsRoot)) {
+        $line = $lines[$pathsLine]
+        if ($line -match '\]\s*(#.*)?$') {
+            $comment = $Matches[1]
+            $prefix = $line.Substring(0, $line.LastIndexOf(']'))
+            $suffix = if ($comment) { " $comment" } else { "" }
+            $lines[$pathsLine] = "$prefix, $((ConvertTo-TomlString $skillPath))]$suffix"
+        } else {
+            throw "Unsupported Reasonix paths format in $configPath"
+        }
+    }
+
+    Set-Content -LiteralPath $configPath -Value $lines -Encoding utf8
+    Write-Output "[HecateFlow] Reasonix skills path registered -> $configPath"
+}
+
 foreach ($root in $targets) {
     New-Item -ItemType Directory -Force -Path $root | Out-Null
 
@@ -156,11 +328,30 @@ foreach ($root in $targets) {
     Write-Output "[HecateFlow] installed -> $root"
 }
 
+if (-not $SkipReasonix) {
+    Install-ReasonixConfig $reasonixRoot
+} else {
+    Write-Output "[HecateFlow] Reasonix install skipped"
+}
+
 if (-not $SkipClaudeHook) {
     $hookScript = Join-Path $env:USERPROFILE ".claude\skills\hecateflow\scripts\claude-post-tool-use-auto-workflow.ps1"
     Install-ClaudeHook $hookScript
 } else {
     Write-Output "[HecateFlow] Claude Code hook skipped"
+}
+
+if ($SkipQoder) {
+    Write-Output "[HecateFlow] Qoder install skipped"
+} elseif ($qoderRoots.Count -eq 0) {
+    Write-Output "[HecateFlow] Qoder install skipped: no initialized .qoder-cn/.qoder root found"
+} elseif ($SkipQoderHook) {
+    Write-Output "[HecateFlow] Qoder hook skipped"
+} else {
+    foreach ($qoderRoot in $qoderRoots) {
+        $hookScript = Join-Path $qoderRoot "skills\hecateflow\scripts\qoder-post-tool-use-auto-workflow.ps1"
+        Install-QoderHook $qoderRoot $hookScript
+    }
 }
 
 # frontmatter name 唯一性自查(仅本包内)
@@ -174,4 +365,4 @@ if ($dupes) { Write-Warning "duplicate skill names: $($dupes.Name -join ', ')" }
 
 $uniqueInstalled = $installed | Sort-Object -Unique
 Write-Output "[HecateFlow] skills: $($uniqueInstalled -join ', ')"
-Write-Output "[HecateFlow] done. Start a new Claude Code / Codex session and invoke 'hecateflow'."
+Write-Output "[HecateFlow] done. Start a new Claude Code / Codex / Reasonix / Qoder session and invoke 'hecateflow'."

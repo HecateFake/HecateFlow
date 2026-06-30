@@ -18,6 +18,8 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 | Claude Code | `CLAUDE.md`(+ `~/.claude/CLAUDE.md` 全局) | 无原生 list;靠 CLAUDE.md 正文引用 `.claude/rules/*` | `~/.claude/skills/*/SKILL.md` 的 `description` | `settings.json` 的 `PreToolUse`/`PostToolUse`/`Stop` |
 | OpenCode | `AGENTS.md` | `opencode.json` 的 `instructions[]`(**核心通道**) | `.opencode/skills/*/SKILL.md` | 插件机制 |
 | Codex | `AGENTS.md` | 无 list;靠 AGENTS.md 正文 | `~/.codex/skills/*/SKILL.md` | 无标准 hook |
+| Reasonix | `AGENTS.md` | 无 list;靠 AGENTS.md 正文 | `~/.agents/skills/*/SKILL.md` 或 `reasonix.toml`/`config.toml` 的 `[skills].paths` | 当前按无稳定外部 hook 处理 |
+| Qoder/QoderCN | `AGENTS.md` | 无 list;靠 AGENTS.md 正文 | `~/.qoder-cn/skills/*/SKILL.md` 或 `~/.qoder/skills/*/SKILL.md` | `settings.json` 的 `PostToolUse` |
 | 其它 | 多读 `AGENTS.md` | 视实现 | 视实现 | 视实现 |
 
 > 结论:**`AGENTS.md` 是跨 CLI 最大公约数**。纲领规则同时写入 `CLAUDE.md` 与 `AGENTS.md`(镜像),细分规则进 `.claude/rules/` 并登记 `opencode.json`。
@@ -37,7 +39,7 @@ agent 不会读它没被喂进上下文的规则。"规则写了但没人看"等
 1. **写纲领入口**:生成 `CLAUDE.md` 与 `AGENTS.md`(同源,见 `../templates/workspace-guide.md.tmpl`),含场景(`workspace.scenario`)、核识别、git 流程、相对路径纪律。登记 `mirrorPairs: [{a:"CLAUDE.md",b:"AGENTS.md"}]`。
 2. **建规则目录**:`.claude/rules/`,放分级文档(见 `../../references/tiered-docs.md`)与场景化检查规则;建 `README.md` 触发表。
 3. **建 instructions 列表**:若用 OpenCode,生成/更新 `opencode.json`,把 `.claude/rules/*.md` 全列入 `instructions[]`;登记到 `autoInjection.instructionsFiles`。
-4. **Claude Code hook**:HecateFlow 安装器默认把 `PostToolUse` hook 写入 `~/.claude/settings.json`,在 `Write`/`Edit`/`MultiEdit` 后注入 `hf-auto-workflow` 提醒;登记到 `autoInjection.hooks`。无 hook 的 CLI 退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(Codex 即此模式,见 `hf-auto-workflow`)。
+4. **Claude Code / Qoder hook**:HecateFlow 安装器默认把 `PostToolUse` hook 写入 `~/.claude/settings.json` 与已初始化的 `~/.qoder-cn/settings.json`/`~/.qoder/settings.json`,在 `Write`/`Edit`/`MultiEdit`/`create_file`/`search_replace` 后注入 `hf-auto-workflow` 提醒;登记到 `autoInjection.hooks`。无 hook 的 CLI 退化为"规则文档命令 agent 每次编辑后执行 auto-workflow"(Codex/Reasonix 即此模式,见 `hf-auto-workflow`)。QoderCN CLI 可用 `qodercncli --with-claude-config` 做 Claude Code 兼容层只读验证。
 5. **校验注入闭环**:新会话能否在不手动 `@` 的情况下命中规则。验证法:让 agent 描述"编辑某 `.c` 前要做什么",应自动复述 auto-workflow 步骤。
 
 ## 反面教训
