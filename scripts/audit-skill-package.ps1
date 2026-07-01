@@ -607,9 +607,67 @@ function Test-HecateFlowHookObject {
             $joined += " $arg"
         }
     }
-    return ($joined -match 'qoder-post-tool-use-auto-workflow' -or
+    return ($joined -match 'claude-post-tool-use-auto-workflow' -or
+            $joined -match 'qoder-post-tool-use-auto-workflow' -or
             $joined -match 'hf-auto-workflow' -or
             $joined -match 'HecateFlow')
+}
+
+function Test-ClaudeHookConfig {
+    $settingsPath = Join-Path $env:USERPROFILE '.claude\settings.json'
+    if (-not (Test-Path -LiteralPath $settingsPath)) {
+        Fail "Claude Code settings missing: $settingsPath"
+    }
+
+    $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json -ErrorAction Stop
+    if (-not $settings.hooks) {
+        Fail "Claude Code hooks missing: $settingsPath"
+    }
+
+    foreach ($eventProperty in $settings.hooks.PSObject.Properties) {
+        if ($eventProperty.Value -isnot [System.Array]) {
+            Fail "Claude Code hook event must be an array of matchers: hooks.$($eventProperty.Name) in $settingsPath"
+        }
+        for ($i = 0; $i -lt $eventProperty.Value.Count; $i++) {
+            $entry = $eventProperty.Value[$i]
+            if ($entry.PSObject.Properties.Name -contains 'hooks' -and
+                $null -ne $entry.hooks -and
+                $entry.hooks -isnot [System.Array]) {
+                Fail "Claude Code matcher hooks must be an array: hooks.$($eventProperty.Name).$i.hooks in $settingsPath"
+            }
+        }
+    }
+
+    if (-not ($settings.hooks.PSObject.Properties.Name -contains 'PostToolUse')) {
+        Fail "Claude Code PostToolUse hook missing: $settingsPath"
+    }
+    if ($settings.hooks.PostToolUse -isnot [System.Array]) {
+        Fail "Claude Code PostToolUse must be an array: $settingsPath"
+    }
+
+    $found = $false
+    foreach ($entry in $settings.hooks.PostToolUse) {
+        $matcher = [string]$entry.matcher
+        $hasWriteTools = $matcher -match 'Write' -and $matcher -match 'Edit' -and $matcher -match 'MultiEdit'
+        if ($entry.PSObject.Properties.Name -notcontains 'hooks' -or $entry.hooks -isnot [System.Array]) {
+            continue
+        }
+        foreach ($hook in $entry.hooks) {
+            if (-not (Test-HecateFlowHookObject $hook)) { continue }
+            if ($hook.command -isnot [string] -or [string]::IsNullOrWhiteSpace($hook.command)) {
+                Fail "Claude Code HecateFlow hook command must be a string: $settingsPath"
+            }
+            if (-not $hasWriteTools) {
+                Fail "Claude Code HecateFlow matcher must cover Write/Edit/MultiEdit: $settingsPath"
+            }
+            $found = $true
+        }
+    }
+
+    if (-not $found) {
+        Fail "Claude Code HecateFlow PostToolUse hook missing: $settingsPath"
+    }
+    Write-Output "Claude Code hook config OK: $settingsPath"
 }
 
 function Test-QoderHookConfig {
@@ -660,6 +718,199 @@ function Test-QoderHookConfig {
     }
 }
 
+function Test-InstallerSettingsRoundTrip {
+    param([string]$InstallerPath)
+
+    if (-not (Test-Path -LiteralPath $InstallerPath)) {
+        Fail "installer missing: $InstallerPath"
+    }
+
+    $scriptText = Get-Content -LiteralPath $InstallerPath -Raw
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+        $scriptText,
+        [ref]$tokens,
+        [ref]$parseErrors
+    )
+    if ($parseErrors -and $parseErrors.Count -gt 0) {
+        $parseErrors | Format-Table -AutoSize
+        Fail "install.ps1 parse failed"
+    }
+
+    $convertFunction = $ast.Find({
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq 'ConvertTo-Hashtable'
+    }, $true)
+    if (-not $convertFunction) {
+        Fail "install.ps1 missing ConvertTo-Hashtable"
+    }
+    if ($convertFunction.Extent.Text -match 'Write-Output\s+-NoEnumerate\s+\$items') {
+        Fail "install.ps1 ConvertTo-Hashtable uses Write-Output -NoEnumerate for arrays; this wraps arrays as value/Count objects under Windows PowerShell 5.1"
+    }
+    if ($convertFunction.Extent.Text -notmatch 'return\s*,\s*\$items') {
+        Fail "install.ps1 ConvertTo-Hashtable array branch must return ,`$items to preserve JSON array shape on PS 5.1 and 7+"
+    }
+
+    . ([scriptblock]::Create($convertFunction.Extent.Text))
+
+    $sampleJson = @'
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          { "type": "command", "command": "echo keep-post" }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo fail" }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo compact" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo pre" }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo end" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo start" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "echo stop" }
+        ]
+      }
+    ]
+  },
+  "plainArrays": {
+    "empty": [],
+    "one": [
+      { "name": "one" }
+    ],
+    "two": [
+      { "name": "a" },
+      { "name": "b" }
+    ],
+    "nested": [
+      []
+    ]
+  }
+}
+'@
+
+    $converted = ConvertTo-Hashtable ($sampleJson | ConvertFrom-Json -ErrorAction Stop)
+    $roundTripped = ($converted | ConvertTo-Json -Depth 32) | ConvertFrom-Json -ErrorAction Stop
+
+    foreach ($eventName in @('PostToolUse','PostToolUseFailure','PreCompact','PreToolUse','SessionEnd','SessionStart','Stop')) {
+        $event = $roundTripped.hooks.$eventName
+        if ($event -isnot [System.Array]) {
+            Fail "install.ps1 ConvertTo-Hashtable flattened hooks.$eventName; Claude Code requires hook events to be arrays"
+        }
+        if ($event.Count -ne 1) {
+            Fail "install.ps1 ConvertTo-Hashtable changed hooks.$eventName count"
+        }
+        if ($event[0].hooks -isnot [System.Array]) {
+            Fail "install.ps1 ConvertTo-Hashtable flattened hooks.$eventName.0.hooks; Claude Code requires matcher hooks to be arrays"
+        }
+        if ($event[0].hooks.Count -ne 1) {
+            Fail "install.ps1 ConvertTo-Hashtable changed hooks.$eventName.0.hooks count"
+        }
+    }
+
+    if ($roundTripped.plainArrays.empty -isnot [System.Array] -or $roundTripped.plainArrays.empty.Count -ne 0) {
+        Fail "install.ps1 ConvertTo-Hashtable failed to preserve empty plain JSON arrays"
+    }
+    if ($roundTripped.plainArrays.one -isnot [System.Array] -or $roundTripped.plainArrays.one.Count -ne 1) {
+        Fail "install.ps1 ConvertTo-Hashtable failed to preserve single-item plain JSON arrays"
+    }
+    if ($roundTripped.plainArrays.two -isnot [System.Array] -or $roundTripped.plainArrays.two.Count -ne 2) {
+        Fail "install.ps1 ConvertTo-Hashtable failed to preserve multi-item plain JSON arrays"
+    }
+    if ($roundTripped.plainArrays.nested -isnot [System.Array] -or $roundTripped.plainArrays.nested[0] -isnot [System.Array]) {
+        Fail "install.ps1 ConvertTo-Hashtable failed to preserve nested plain JSON arrays"
+    }
+
+    $windowsPowerShell = Get-Command powershell.exe -ErrorAction SilentlyContinue
+    if ($windowsPowerShell) {
+        $windowsScript = @"
+`$ErrorActionPreference = 'Stop'
+$($convertFunction.Extent.Text)
+`$sampleJson = @'
+$sampleJson
+'@
+`$converted = ConvertTo-Hashtable (`$sampleJson | ConvertFrom-Json -ErrorAction Stop)
+`$json = `$converted | ConvertTo-Json -Depth 32 -Compress
+if (`$json -match '"value"\s*:' -or `$json -match '"Count"\s*:') {
+    throw 'ConvertTo-Hashtable emitted value/Count wrapper instead of JSON arrays'
+}
+`$roundTripped = `$json | ConvertFrom-Json -ErrorAction Stop
+foreach (`$eventName in @('PostToolUse','PostToolUseFailure','PreCompact','PreToolUse','SessionEnd','SessionStart','Stop')) {
+    `$event = `$roundTripped.hooks.`$eventName
+    if (`$event -isnot [System.Array]) {
+        throw "hooks.`$eventName flattened"
+    }
+    if (`$event[0].hooks -isnot [System.Array]) {
+        throw "hooks.`$eventName.0.hooks flattened"
+    }
+}
+if (`$roundTripped.plainArrays.empty -isnot [System.Array] -or `$roundTripped.plainArrays.empty.Count -ne 0) {
+    throw 'empty plain array flattened'
+}
+if (`$roundTripped.plainArrays.one -isnot [System.Array] -or `$roundTripped.plainArrays.one.Count -ne 1) {
+    throw 'single-item plain array flattened'
+}
+if (`$roundTripped.plainArrays.two -isnot [System.Array] -or `$roundTripped.plainArrays.two.Count -ne 2) {
+    throw 'multi-item plain array flattened'
+}
+if (`$roundTripped.plainArrays.nested -isnot [System.Array] -or `$roundTripped.plainArrays.nested[0] -isnot [System.Array]) {
+    throw 'nested plain array flattened'
+}
+Write-Output 'Windows PowerShell installer settings round-trip OK'
+"@
+        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($windowsScript))
+        $windowsOutput = & $windowsPowerShell.Source -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $windowsOutput | Write-Output
+            Fail "Windows PowerShell install.ps1 settings round-trip failed"
+        }
+    }
+
+    Write-Output 'Installer settings round-trip OK'
+}
+
 function Test-NoDuplicateCodexAgentsInstall {
     param([string]$SourceSkills)
 
@@ -700,6 +951,7 @@ Test-Frontmatter $skillsRoot
 Test-PackageRefs $RepoRoot -SourceLayout
 Test-StaleStrings $RepoRoot
 Test-OrchestrationContractCoverage $RepoRoot
+Test-InstallerSettingsRoundTrip (Join-Path $RepoRoot 'install.ps1')
 Write-Output 'Source package checks OK'
 
 if (-not $SkipInstalled) {
@@ -722,6 +974,7 @@ if (-not $SkipInstalled) {
     }
 
     Test-ReasonixConfig
+    Test-ClaudeHookConfig
     Test-QoderHookConfig
 }
 

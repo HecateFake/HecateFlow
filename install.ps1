@@ -1,7 +1,7 @@
 # HecateFlow installer (Windows / PowerShell)
 # 把 skills/ 安装到 Claude Code / Reasonix(.agents) / Qoder 个人 skill 目录,模板随 hecateflow 入口捆绑。幂等。
 # Codex Desktop 会同时索引 ~/.codex/skills 与 ~/.agents/skills;默认只通过 ~/.agents/skills 提供 HecateFlow,避免重复显示。
-# 用法: pwsh -File install.ps1   或   ./install.ps1
+# 用法: pwsh -File install.ps1
 
 param(
     [switch]$SkipClaudeHook,
@@ -12,6 +12,23 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+    if (-not $pwsh) {
+        throw "HecateFlow install.ps1 requires PowerShell 7+ (pwsh) to preserve JSON hook array shapes. Install PowerShell 7, then run: pwsh -NoProfile -ExecutionPolicy Bypass -File install.ps1"
+    }
+
+    $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+    $forwardArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$scriptPath)
+    if ($SkipClaudeHook) { $forwardArgs += '-SkipClaudeHook' }
+    if ($SkipReasonix) { $forwardArgs += '-SkipReasonix' }
+    if ($SkipQoder) { $forwardArgs += '-SkipQoder' }
+    if ($SkipQoderHook) { $forwardArgs += '-SkipQoderHook' }
+    if ($InstallCodex) { $forwardArgs += '-InstallCodex' }
+    & $pwsh.Source @forwardArgs
+    exit $LASTEXITCODE
+}
+
 $repo = Split-Path -Parent $MyInvocation.MyCommand.Path
 $skillsSrc = Join-Path $repo "skills"
 $tmplSrc   = Join-Path $repo "templates"
@@ -61,7 +78,12 @@ function ConvertTo-Hashtable($Value) {
     }
 
     if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
-        return @($Value | ForEach-Object { ConvertTo-Hashtable $_ })
+        $items = @()
+        foreach ($item in $Value) {
+            $items += ,(ConvertTo-Hashtable $item)
+        }
+        # PowerShell enumerates function return arrays by default; unary comma preserves JSON array shape on PS 5.1 and 7+.
+        return ,$items
     }
 
     if ($Value -is [pscustomobject]) {
